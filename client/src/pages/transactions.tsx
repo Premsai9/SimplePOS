@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { format } from 'date-fns';
 import { Link } from 'wouter';
 import { ArrowLeft, CalendarIcon, Search } from 'lucide-react';
-import { Transaction } from '@/lib/types';
+import { Transaction, Settings } from '@/lib/types';
+import { useAuth } from '@/hooks/use-auth';
 
 import {
   Table,
@@ -28,6 +29,12 @@ import { Calendar } from '@/components/ui/calendar';
 export default function TransactionHistory() {
   const [searchTerm, setSearchTerm] = useState('');
   const [date, setDate] = useState<Date | undefined>(undefined);
+  const { user } = useAuth();
+
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+    enabled: !!user,
+  });
 
   const { data: transactions, isLoading } = useQuery<Transaction[]>({
     queryKey: ['/api/transactions'],
@@ -56,7 +63,7 @@ export default function TransactionHistory() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: settings?.currency || 'USD',
     }).format(amount);
   };
 

@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Search, ChevronDown, Plus, Edit, Tag } from "lucide-react";
-import { Product, Category } from "@/lib/types";
+import { Product, Category, Settings } from "@/lib/types";
 import { 
   DropdownMenu,
   DropdownMenuContent,
@@ -13,6 +13,8 @@ import { Skeleton } from "@/components/ui/skeleton";
 import AddProductModal from "./add-product-modal";
 import EditProductModal from "./edit-product-modal";
 import CategoryManagementModal from "./category-management-modal";
+import { useQuery } from "@tanstack/react-query";
+import { useAuth } from "@/hooks/use-auth";
 
 interface ProductCatalogProps {
   products: Product[];
@@ -40,6 +42,13 @@ export default function ProductCatalog({
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const { user } = useAuth();
+  
+  // Fetch settings to get currency
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+    enabled: !!user,
+  });
 
   return (
     <div className="w-full h-full bg-white overflow-hidden flex flex-col shadow-sm">
@@ -195,7 +204,7 @@ export default function ProductCatalog({
                 <div className="p-2 sm:p-3">
                   <h3 className="text-xs sm:text-sm font-medium text-slate-800 truncate">{product.name}</h3>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-700">${product.price.toFixed(2)}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">{settings?.currency || '$'} {product.price.toFixed(2)}</span>
                     <span className="text-xs text-slate-500">Stock: {product.inventory}</span>
                   </div>
                 </div>
