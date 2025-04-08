@@ -12,6 +12,11 @@ export const users = pgTable("users", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   currency: text("currency").default("USD"),
   taxRate: doublePrecision("tax_rate").default(7.5),
+  storeName: text("store_name"),
+  storeAddress: text("store_address"),
+  storePhone: text("store_phone"),
+  storeEmail: text("store_email"),
+  receiptFooter: text("receipt_footer"),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -22,6 +27,11 @@ export const insertUserSchema = createInsertSchema(users).pick({
   role: true,
   currency: true,
   taxRate: true,
+  storeName: true,
+  storeAddress: true,
+  storePhone: true,
+  storeEmail: true,
+  receiptFooter: true,
 });
 
 // Products table

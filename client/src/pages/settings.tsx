@@ -35,14 +35,14 @@ const settingsSchema = z.object({
   storeName: z.string().min(2, "Store name must be at least 2 characters"),
   taxRate: z.coerce.number().min(0, "Tax rate cannot be negative").max(30, "Tax rate cannot exceed 30%"),
   currency: z.string().min(1, "Please select a currency"),
-  address: z.string().optional(),
-  phone: z.string().optional(),
-  email: z.string().email("Invalid email address").optional().or(z.literal("")),
+  storeAddress: z.string().optional(),
+  storePhone: z.string().optional(),
+  storeEmail: z.string().email("Invalid email address").optional().or(z.literal("")),
   
   // Receipt settings
   showLogo: z.boolean().default(true),
   showTaxDetails: z.boolean().default(true),
-  footerText: z.string().optional(),
+  receiptFooter: z.string().optional(),
   
   // Advanced options
   enableInventoryTracking: z.boolean().default(true),
@@ -68,12 +68,12 @@ export default function Settings() {
     storeName: "My POS Store",
     taxRate: 8.5,
     currency: "USD",
-    address: "123 Main St, City, State",
-    phone: "(555) 123-4567",
-    email: "contact@mystore.com",
+    storeAddress: "123 Main St, City, State",
+    storePhone: "(555) 123-4567",
+    storeEmail: "contact@mystore.com",
     showLogo: true,
     showTaxDetails: true,
-    footerText: "Thank you for your business!",
+    receiptFooter: "Thank you for your business!",
     enableInventoryTracking: true,
     enableDiscounts: true,
     enableHoldOrders: false,
@@ -89,6 +89,11 @@ export default function Settings() {
   type UserSettings = {
     currency: string;
     taxRate: number;
+    storeName?: string;
+    storeAddress?: string;
+    storePhone?: string;
+    storeEmail?: string;
+    receiptFooter?: string;
   };
   
   // Fetch user settings from the server
@@ -101,8 +106,26 @@ export default function Settings() {
   // Update form when settings are loaded
   useEffect(() => {
     if (userSettings) {
+      // Set all server-side settings
       form.setValue('currency', userSettings.currency);
       form.setValue('taxRate', userSettings.taxRate);
+      
+      // Set optional store information if available
+      if (userSettings.storeName) {
+        form.setValue('storeName', userSettings.storeName);
+      }
+      if (userSettings.storeAddress) {
+        form.setValue('storeAddress', userSettings.storeAddress);
+      }
+      if (userSettings.storePhone) {
+        form.setValue('storePhone', userSettings.storePhone);
+      }
+      if (userSettings.storeEmail) {
+        form.setValue('storeEmail', userSettings.storeEmail);
+      }
+      if (userSettings.receiptFooter) {
+        form.setValue('receiptFooter', userSettings.receiptFooter);
+      }
     }
   }, [userSettings, form]);
   
@@ -129,7 +152,7 @@ export default function Settings() {
   const saveSettingsMutation = useMutation<
     UserSettings, 
     Error, 
-    { currency: string; taxRate: number }
+    UserSettings
   >({
     mutationFn: async (settings) => {
       const response = await apiRequest('PUT', '/api/settings', settings);
@@ -154,14 +177,31 @@ export default function Settings() {
   const onSubmit = async (data: SettingsFormValues) => {
     setIsSaving(true);
     try {
-      // Save currency and taxRate to the server
-      await saveSettingsMutation.mutateAsync({ 
-        currency: data.currency, 
-        taxRate: data.taxRate 
-      });
+      // Extract store information for server-side storage
+      const serverSettings: UserSettings = {
+        currency: data.currency,
+        taxRate: data.taxRate,
+        storeName: data.storeName,
+        storeAddress: data.storeAddress,
+        storePhone: data.storePhone,
+        storeEmail: data.storeEmail,
+        receiptFooter: data.receiptFooter
+      };
       
-      // Save other settings to localStorage
-      localStorage.setItem("pos-settings", JSON.stringify(data));
+      // Save all settings to the server
+      await saveSettingsMutation.mutateAsync(serverSettings);
+      
+      // Save other settings to localStorage (like UI preferences)
+      const localSettings = {
+        showLogo: data.showLogo,
+        showTaxDetails: data.showTaxDetails,
+        enableInventoryTracking: data.enableInventoryTracking,
+        enableDiscounts: data.enableDiscounts,
+        enableHoldOrders: data.enableHoldOrders,
+        defaultCategory: data.defaultCategory
+      };
+      
+      localStorage.setItem("pos-settings", JSON.stringify(localSettings));
     } catch (error) {
       // Error is handled by the mutation
       console.error("Failed to save settings:", error);
@@ -279,7 +319,7 @@ export default function Settings() {
                 <CardContent className="space-y-4">
                   <FormField
                     control={form.control}
-                    name="address"
+                    name="storeAddress"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Business Address</FormLabel>
@@ -294,7 +334,7 @@ export default function Settings() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <FormField
                       control={form.control}
-                      name="phone"
+                      name="storePhone"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Phone Number</FormLabel>
@@ -308,7 +348,7 @@ export default function Settings() {
                     
                     <FormField
                       control={form.control}
-                      name="email"
+                      name="storeEmail"
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel>Email Address</FormLabel>
@@ -382,7 +422,7 @@ export default function Settings() {
                   
                   <FormField
                     control={form.control}
-                    name="footerText"
+                    name="receiptFooter"
                     render={({ field }) => (
                       <FormItem>
                         <FormLabel>Receipt Footer Text</FormLabel>

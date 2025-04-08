@@ -396,16 +396,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Return only the settings-related fields
+    // Return all settings-related fields
     res.json({
       currency: user.currency || "USD",
-      taxRate: user.taxRate || 7.5
+      taxRate: user.taxRate || 7.5,
+      storeName: user.storeName || "",
+      storeAddress: user.storeAddress || "",
+      storePhone: user.storePhone || "",
+      storeEmail: user.storeEmail || "",
+      receiptFooter: user.receiptFooter || "Thank you for your business!"
     });
   });
   
   apiRouter.put("/settings", isAuthenticated, async (req: Request, res: Response) => {
     const userId = req.user!.id;
-    const { currency, taxRate } = req.body;
+    const { 
+      currency, 
+      taxRate, 
+      storeName, 
+      storeAddress, 
+      storePhone, 
+      storeEmail, 
+      receiptFooter 
+    } = req.body;
     
     try {
       // Validate the settings
@@ -417,17 +430,51 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Tax rate must be a number between 0 and 100" });
       }
       
+      // Validate other fields
+      if (storeName !== undefined && typeof storeName !== 'string') {
+        return res.status(400).json({ message: "Store name must be a string" });
+      }
+      
+      if (storeAddress !== undefined && typeof storeAddress !== 'string') {
+        return res.status(400).json({ message: "Store address must be a string" });
+      }
+      
+      if (storePhone !== undefined && typeof storePhone !== 'string') {
+        return res.status(400).json({ message: "Store phone must be a string" });
+      }
+      
+      if (storeEmail !== undefined && typeof storeEmail !== 'string') {
+        return res.status(400).json({ message: "Store email must be a string" });
+      }
+      
+      if (receiptFooter !== undefined && typeof receiptFooter !== 'string') {
+        return res.status(400).json({ message: "Receipt footer must be a string" });
+      }
+      
       // Update the user with the new settings
-      const user = await storage.updateUserSettings(userId, { currency, taxRate });
+      const user = await storage.updateUserSettings(userId, { 
+        currency, 
+        taxRate, 
+        storeName, 
+        storeAddress, 
+        storePhone, 
+        storeEmail, 
+        receiptFooter 
+      });
       
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
       
-      // Return only the settings-related fields
+      // Return all settings-related fields
       res.json({
         currency: user.currency,
-        taxRate: user.taxRate
+        taxRate: user.taxRate,
+        storeName: user.storeName,
+        storeAddress: user.storeAddress,
+        storePhone: user.storePhone,
+        storeEmail: user.storeEmail,
+        receiptFooter: user.receiptFooter
       });
     } catch (error) {
       console.error("Error updating settings:", error);

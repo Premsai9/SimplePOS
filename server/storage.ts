@@ -11,7 +11,15 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
-  updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined>;
+  updateUserSettings(id: number, settings: { 
+    currency?: string; 
+    taxRate?: number;
+    storeName?: string;
+    storeAddress?: string;
+    storePhone?: string;
+    storeEmail?: string;
+    receiptFooter?: string;
+  }): Promise<User | undefined>;
 
   // Product methods
   getAllProducts(userId?: number): Promise<Product[]>;
@@ -114,20 +122,38 @@ export class MemStorage implements IStorage {
       email: insertUser.email || null,
       fullName: insertUser.fullName || null,
       currency: insertUser.currency || "USD",
-      taxRate: insertUser.taxRate || 7.5
+      taxRate: insertUser.taxRate || 7.5,
+      storeName: insertUser.storeName || null,
+      storeAddress: insertUser.storeAddress || null,
+      storePhone: insertUser.storePhone || null,
+      storeEmail: insertUser.storeEmail || null,
+      receiptFooter: insertUser.receiptFooter || null
     };
     this.users.set(id, user);
     return user;
   }
   
-  async updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined> {
+  async updateUserSettings(id: number, settings: { 
+    currency?: string; 
+    taxRate?: number;
+    storeName?: string;
+    storeAddress?: string;
+    storePhone?: string;
+    storeEmail?: string;
+    receiptFooter?: string;
+  }): Promise<User | undefined> {
     const user = this.users.get(id);
     if (!user) return undefined;
     
     const updatedUser = { 
       ...user,
       currency: settings.currency !== undefined ? settings.currency : user.currency,
-      taxRate: settings.taxRate !== undefined ? settings.taxRate : user.taxRate
+      taxRate: settings.taxRate !== undefined ? settings.taxRate : user.taxRate,
+      storeName: settings.storeName !== undefined ? settings.storeName : user.storeName,
+      storeAddress: settings.storeAddress !== undefined ? settings.storeAddress : user.storeAddress,
+      storePhone: settings.storePhone !== undefined ? settings.storePhone : user.storePhone,
+      storeEmail: settings.storeEmail !== undefined ? settings.storeEmail : user.storeEmail,
+      receiptFooter: settings.receiptFooter !== undefined ? settings.receiptFooter : user.receiptFooter
     };
     
     this.users.set(id, updatedUser);
@@ -321,13 +347,26 @@ export class DatabaseStorage implements IStorage {
       email: insertUser.email || null,
       fullName: insertUser.fullName || null,
       currency: insertUser.currency || "USD",
-      taxRate: insertUser.taxRate || 7.5
+      taxRate: insertUser.taxRate || 7.5,
+      storeName: insertUser.storeName || null,
+      storeAddress: insertUser.storeAddress || null,
+      storePhone: insertUser.storePhone || null,
+      storeEmail: insertUser.storeEmail || null,
+      receiptFooter: insertUser.receiptFooter || null
     };
     const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
   
-  async updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined> {
+  async updateUserSettings(id: number, settings: { 
+    currency?: string; 
+    taxRate?: number;
+    storeName?: string;
+    storeAddress?: string;
+    storePhone?: string;
+    storeEmail?: string;
+    receiptFooter?: string;
+  }): Promise<User | undefined> {
     // Only update the properties that are provided
     const updateData: Partial<User> = {};
     
@@ -337,6 +376,26 @@ export class DatabaseStorage implements IStorage {
     
     if (settings.taxRate !== undefined) {
       updateData.taxRate = settings.taxRate;
+    }
+    
+    if (settings.storeName !== undefined) {
+      updateData.storeName = settings.storeName;
+    }
+    
+    if (settings.storeAddress !== undefined) {
+      updateData.storeAddress = settings.storeAddress;
+    }
+    
+    if (settings.storePhone !== undefined) {
+      updateData.storePhone = settings.storePhone;
+    }
+    
+    if (settings.storeEmail !== undefined) {
+      updateData.storeEmail = settings.storeEmail;
+    }
+    
+    if (settings.receiptFooter !== undefined) {
+      updateData.receiptFooter = settings.receiptFooter;
     }
     
     // No changes to update
