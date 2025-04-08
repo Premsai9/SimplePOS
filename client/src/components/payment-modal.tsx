@@ -3,7 +3,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { X } from "lucide-react";
-import { PaymentForm } from "@/lib/types";
+import { PaymentForm, Settings } from "@/lib/types";
+import { useQuery } from "@tanstack/react-query";
 
 interface PaymentModalProps {
   isOpen: boolean;
@@ -24,6 +25,14 @@ export default function PaymentModal({
     Math.ceil(total * 100) / 100 // Round up to nearest cent
   );
   const [paymentMethod, setPaymentMethod] = useState<string>("Cash");
+  
+  // Get user's currency settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
+  
+  // Use currency from settings or default to USD
+  const currency = settings?.currency || 'USD';
   
   const changeDue = amountTendered - total;
   const isValidPayment = paymentMethod === "Cash" ? amountTendered >= total : true;
@@ -53,7 +62,7 @@ export default function PaymentModal({
           <div className="mb-4">
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium text-slate-700">Total Amount</span>
-              <span className="text-lg font-bold text-blue-600">${total.toFixed(2)}</span>
+              <span className="text-lg font-bold text-blue-600">{currency} {total.toFixed(2)}</span>
             </div>
           </div>
           
@@ -86,7 +95,7 @@ export default function PaymentModal({
               <div className="mb-4">
                 <label className="text-sm font-medium text-slate-700 block mb-1">Amount Tendered</label>
                 <div className="relative">
-                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">$</span>
+                  <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">{currency}</span>
                   <Input 
                     type="number"
                     value={amountTendered}
@@ -97,7 +106,7 @@ export default function PaymentModal({
                   />
                 </div>
                 {amountTendered < total && (
-                  <p className="text-red-500 text-xs mt-1">Amount must be at least ${total.toFixed(2)}</p>
+                  <p className="text-red-500 text-xs mt-1">Amount must be at least {currency} {total.toFixed(2)}</p>
                 )}
               </div>
               
@@ -105,7 +114,7 @@ export default function PaymentModal({
                 <div className="flex justify-between">
                   <span className="text-sm font-medium text-slate-700">Change Due</span>
                   <span className={`text-lg font-bold ${changeDue >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    ${changeDue.toFixed(2)}
+                    {currency} {changeDue.toFixed(2)}
                   </span>
                 </div>
               </div>
