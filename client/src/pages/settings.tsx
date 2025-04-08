@@ -1,7 +1,8 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
 import { ArrowLeft, Save, Tag } from "lucide-react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation } from "@tanstack/react-query";
+import { queryClient } from "@/lib/queryClient";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -25,6 +26,8 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { Category } from "@/lib/types";
+import { apiRequest } from "@/lib/queryClient";
+import { useAuth } from "@/hooks/use-auth";
 
 // Define settings schema
 const settingsSchema = z.object({
@@ -82,35 +85,85 @@ export default function Settings() {
     defaultValues,
   });
   
-  // Load settings from localStorage on page load
+  // Define user settings type
+  type UserSettings = {
+    currency: string;
+    taxRate: number;
+  };
+  
+  // Fetch user settings from the server
+  const { user } = useAuth();
+  const { data: userSettings, isLoading: isLoadingSettings } = useQuery<UserSettings>({
+    queryKey: ['/api/settings'],
+    enabled: !!user,
+  });
+  
+  // Update form when settings are loaded
+  useEffect(() => {
+    if (userSettings) {
+      form.setValue('currency', userSettings.currency);
+      form.setValue('taxRate', userSettings.taxRate);
+    }
+  }, [userSettings, form]);
+  
+  // Also load other settings from localStorage for fields not stored in the database
   useEffect(() => {
     const savedSettings = localStorage.getItem("pos-settings");
     if (savedSettings) {
       try {
         const parsedSettings = JSON.parse(savedSettings);
-        form.reset(parsedSettings);
+        // We'll set all values except currency and taxRate which come from the server
+        const { currency, taxRate, ...otherSettings } = parsedSettings;
+        
+        // Only update localStorage settings that don't come from the server
+        Object.entries(otherSettings).forEach(([key, value]) => {
+          form.setValue(key as any, value as any);
+        });
       } catch (error) {
         console.error("Failed to parse saved settings:", error);
       }
     }
   }, [form]);
   
-  const onSubmit = async (data: SettingsFormValues) => {
-    setIsSaving(true);
-    try {
-      // Save settings to localStorage
-      localStorage.setItem("pos-settings", JSON.stringify(data));
-      
+  // Save settings mutation
+  const saveSettingsMutation = useMutation<
+    UserSettings, 
+    Error, 
+    { currency: string; taxRate: number }
+  >({
+    mutationFn: async (settings) => {
+      const response = await apiRequest('PUT', '/api/settings', settings);
+      return response.json();
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['/api/settings'] });
       toast({
         title: "Settings saved",
         description: "Your changes have been saved successfully.",
       });
-    } catch (error) {
+    },
+    onError: (error) => {
       toast({
         title: "Error",
-        description: "Failed to save settings.",
+        description: `Failed to save settings: ${error.message}`,
         variant: "destructive",
       });
+    }
+  });
+  
+  const onSubmit = async (data: SettingsFormValues) => {
+    setIsSaving(true);
+    try {
+      // Save currency and taxRate to the server
+      await saveSettingsMutation.mutateAsync({ 
+        currency: data.currency, 
+        taxRate: data.taxRate 
+      });
+      
+      // Save other settings to localStorage
+      localStorage.setItem("pos-settings", JSON.stringify(data));
+    } catch (error) {
+      // Error is handled by the mutation
       console.error("Failed to save settings:", error);
     } finally {
       setIsSaving(false);

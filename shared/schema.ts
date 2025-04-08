@@ -10,6 +10,8 @@ export const users = pgTable("users", {
   fullName: text("full_name"),
   role: text("role").default("user").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  currency: text("currency").default("USD"),
+  taxRate: doublePrecision("tax_rate").default(7.5),
 });
 
 export const insertUserSchema = createInsertSchema(users).pick({
@@ -18,6 +20,8 @@ export const insertUserSchema = createInsertSchema(users).pick({
   email: true,
   fullName: true,
   role: true,
+  currency: true,
+  taxRate: true,
 });
 
 // Products table
@@ -47,6 +51,7 @@ export const cartItems = pgTable("cart_items", {
   productId: integer("product_id").notNull(),
   quantity: integer("quantity").notNull().default(1),
   price: doublePrecision("price").notNull(),
+  userId: integer("user_id").references(() => users.id),
 });
 
 export const insertCartItemSchema = createInsertSchema(cartItems).pick({
@@ -54,6 +59,7 @@ export const insertCartItemSchema = createInsertSchema(cartItems).pick({
   productId: true,
   quantity: true,
   price: true,
+  userId: true,
 });
 
 // Transactions table

@@ -11,6 +11,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: InsertUser): Promise<User>;
+  updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined>;
 
   // Product methods
   getAllProducts(userId?: number): Promise<Product[]>;
@@ -111,10 +112,26 @@ export class MemStorage implements IStorage {
       role: "user",
       createdAt: new Date(),
       email: insertUser.email || null,
-      fullName: insertUser.fullName || null
+      fullName: insertUser.fullName || null,
+      currency: insertUser.currency || "USD",
+      taxRate: insertUser.taxRate || 7.5
     };
     this.users.set(id, user);
     return user;
+  }
+  
+  async updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined> {
+    const user = this.users.get(id);
+    if (!user) return undefined;
+    
+    const updatedUser = { 
+      ...user,
+      currency: settings.currency !== undefined ? settings.currency : user.currency,
+      taxRate: settings.taxRate !== undefined ? settings.taxRate : user.taxRate
+    };
+    
+    this.users.set(id, updatedUser);
+    return updatedUser;
   }
 
   // Product methods
@@ -132,7 +149,8 @@ export class MemStorage implements IStorage {
       ...product, 
       id,
       inventory: product.inventory || 0,
-      imageUrl: product.imageUrl || null
+      imageUrl: product.imageUrl || null,
+      userId: product.userId || null
     };
     this.products.set(id, newProduct);
     return newProduct;
@@ -186,7 +204,8 @@ export class MemStorage implements IStorage {
       ...item, 
       id,
       transactionId: item.transactionId || null,
-      quantity: item.quantity || 1
+      quantity: item.quantity || 1,
+      userId: item.userId || null
     };
     this.cartItems.set(id, newItem);
     return newItem;
@@ -242,7 +261,8 @@ export class MemStorage implements IStorage {
       completed: transaction.completed || false,
       discount: transaction.discount || null,
       discountType: transaction.discountType || null,
-      cashierId: transaction.cashierId || null
+      cashierId: transaction.cashierId || null,
+      userId: transaction.userId || null
     };
     this.transactions.set(id, newTransaction);
     return newTransaction;
@@ -272,7 +292,7 @@ export class MemStorage implements IStorage {
 
   async createCategory(category: InsertCategory): Promise<Category> {
     const id = this.categoryId++;
-    const newCategory: Category = { ...category, id };
+    const newCategory: Category = { ...category, id, userId: category.userId || null };
     this.categories.set(id, newCategory);
     return newCategory;
   }
@@ -299,10 +319,39 @@ export class DatabaseStorage implements IStorage {
       role: "user",
       createdAt: new Date(),
       email: insertUser.email || null,
-      fullName: insertUser.fullName || null
+      fullName: insertUser.fullName || null,
+      currency: insertUser.currency || "USD",
+      taxRate: insertUser.taxRate || 7.5
     };
     const [user] = await db.insert(users).values(userData).returning();
     return user;
+  }
+  
+  async updateUserSettings(id: number, settings: { currency?: string; taxRate?: number }): Promise<User | undefined> {
+    // Only update the properties that are provided
+    const updateData: Partial<User> = {};
+    
+    if (settings.currency !== undefined) {
+      updateData.currency = settings.currency;
+    }
+    
+    if (settings.taxRate !== undefined) {
+      updateData.taxRate = settings.taxRate;
+    }
+    
+    // No changes to update
+    if (Object.keys(updateData).length === 0) {
+      const [user] = await db.select().from(users).where(eq(users.id, id));
+      return user;
+    }
+    
+    const [updatedUser] = await db
+      .update(users)
+      .set(updateData)
+      .where(eq(users.id, id))
+      .returning();
+      
+    return updatedUser;
   }
 
   // Product methods
@@ -379,39 +428,43 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Cart methods
-  async getCartItems(transactionId?: number): Promise<CartItem[]> {
+  async getCartItems(transactionId?: number, userId?: number): Promise<CartItem[]> {
+    const conditions = [];
+    
     if (transactionId) {
-      return db.select().from(cartItems).where(eq(cartItems.transactionId, transactionId));
+      conditions.push(eq(cartItems.transactionId, transactionId));
+    } else {
+      conditions.push(isNull(cartItems.transactionId));
     }
-    return db.select().from(cartItems).where(isNull(cartItems.transactionId));
+    
+    if (userId) {
+      conditions.push(eq(cartItems.userId, userId));
+    }
+    
+    return db.select().from(cartItems).where(and(...conditions));
   }
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
-    // Check if this product is already in the cart
+    // Check if this product is already in the cart for this user
     let existingItem;
+    const conditions = [eq(cartItems.productId, item.productId)];
+    
     if (item.transactionId) {
-      const [found] = await db
-        .select()
-        .from(cartItems)
-        .where(
-          and(
-            eq(cartItems.productId, item.productId),
-            eq(cartItems.transactionId, item.transactionId)
-          )
-        );
-      existingItem = found;
+      conditions.push(eq(cartItems.transactionId, item.transactionId));
     } else {
-      const [found] = await db
-        .select()
-        .from(cartItems)
-        .where(
-          and(
-            eq(cartItems.productId, item.productId),
-            isNull(cartItems.transactionId)
-          )
-        );
-      existingItem = found;
+      conditions.push(isNull(cartItems.transactionId));
     }
+    
+    if (item.userId) {
+      conditions.push(eq(cartItems.userId, item.userId));
+    }
+    
+    const [found] = await db
+      .select()
+      .from(cartItems)
+      .where(and(...conditions));
+    
+    existingItem = found;
 
     if (existingItem) {
       // Update quantity instead of adding new item
@@ -422,7 +475,8 @@ export class DatabaseStorage implements IStorage {
     const cartItemData = {
       ...item,
       transactionId: item.transactionId || null,
-      quantity: item.quantity || 1
+      quantity: item.quantity || 1,
+      userId: item.userId || null
     };
     
     const [newItem] = await db.insert(cartItems).values(cartItemData).returning();
@@ -448,14 +502,23 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  async clearCart(transactionId?: number): Promise<boolean> {
+  async clearCart(transactionId?: number, userId?: number): Promise<boolean> {
+    const conditions = [];
+    
     if (transactionId) {
       // Clear only items for a specific transaction
-      await db.delete(cartItems).where(eq(cartItems.transactionId, transactionId));
+      conditions.push(eq(cartItems.transactionId, transactionId));
     } else {
       // Clear items not associated with any transaction
-      await db.delete(cartItems).where(isNull(cartItems.transactionId));
+      conditions.push(isNull(cartItems.transactionId));
     }
+    
+    if (userId) {
+      // Only clear items for this user
+      conditions.push(eq(cartItems.userId, userId));
+    }
+    
+    await db.delete(cartItems).where(and(...conditions));
     return true;
   }
 

@@ -113,8 +113,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Cart API
-  apiRouter.get("/cart", async (_req: Request, res: Response) => {
-    const cartItems = await storage.getCartItems();
+  apiRouter.get("/cart", async (req: Request, res: Response) => {
+    const userId = req.isAuthenticated() ? req.user!.id : undefined;
+    const cartItems = await storage.getCartItems(undefined, userId);
     
     // Get product details for each cart item
     const itemsWithDetails = await Promise.all(
@@ -133,6 +134,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/cart", async (req: Request, res: Response) => {
     try {
       const cartItemData = insertCartItemSchema.parse(req.body);
+      
+      // Add user ID if authenticated
+      if (req.isAuthenticated()) {
+        cartItemData.userId = req.user!.id;
+      }
       
       // Verify product exists and has enough inventory
       const product = await storage.getProductById(cartItemData.productId);
@@ -247,8 +253,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.status(204).end();
   });
 
-  apiRouter.delete("/cart", async (_req: Request, res: Response) => {
-    await storage.clearCart();
+  apiRouter.delete("/cart", async (req: Request, res: Response) => {
+    const userId = req.isAuthenticated() ? req.user!.id : undefined;
+    await storage.clearCart(undefined, userId);
     res.status(204).end();
   });
 
@@ -305,8 +312,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         userId: userId
       });
       
-      // Get current cart items
-      const cartItems = await storage.getCartItems();
+      // Get current cart items for this user
+      const cartItems = await storage.getCartItems(undefined, userId);
       
       // Associate cart items with the transaction
       for (const item of cartItems) {
@@ -377,6 +384,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid category data", errors: error.errors });
       }
       res.status(500).json({ message: "Failed to create category" });
+    }
+  });
+
+  // User settings API
+  apiRouter.get("/settings", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const user = await storage.getUser(userId);
+    
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+    
+    // Return only the settings-related fields
+    res.json({
+      currency: user.currency || "USD",
+      taxRate: user.taxRate || 7.5
+    });
+  });
+  
+  apiRouter.put("/settings", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const { currency, taxRate } = req.body;
+    
+    try {
+      // Validate the settings
+      if (currency && typeof currency !== 'string') {
+        return res.status(400).json({ message: "Currency must be a string" });
+      }
+      
+      if (taxRate !== undefined && (typeof taxRate !== 'number' || taxRate < 0 || taxRate > 100)) {
+        return res.status(400).json({ message: "Tax rate must be a number between 0 and 100" });
+      }
+      
+      // Update the user with the new settings
+      const user = await storage.updateUserSettings(userId, { currency, taxRate });
+      
+      if (!user) {
+        return res.status(404).json({ message: "User not found" });
+      }
+      
+      // Return only the settings-related fields
+      res.json({
+        currency: user.currency,
+        taxRate: user.taxRate
+      });
+    } catch (error) {
+      console.error("Error updating settings:", error);
+      res.status(500).json({ message: "Failed to update settings" });
     }
   });
 
