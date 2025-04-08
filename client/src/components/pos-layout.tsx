@@ -86,7 +86,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
       </header>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-hidden">
+      <main className="flex-1 overflow-y-auto">
         {children}
       </main>
     </div>

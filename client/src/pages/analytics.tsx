@@ -15,6 +15,7 @@ import { ArrowLeft, Calendar as CalendarIcon, TrendingUp, LineChart as LineChart
 import { Transaction, Product, Category } from "@shared/schema";
 import POSLayout from "@/components/pos-layout";
 import { useAuth } from "@/hooks/use-auth";
+import { Settings } from "@/lib/types";
 
 // Define analytics period options
 type AnalyticsPeriod = "today" | "week" | "month" | "custom";
@@ -30,6 +31,12 @@ export default function Analytics() {
     end: endOfWeek(new Date())
   });
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
+  
+  // Fetch user settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+    enabled: !!user,
+  });
 
   // Calculate date range based on selected period
   useEffect(() => {
@@ -236,7 +243,7 @@ export default function Analytics() {
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', { 
       style: 'currency', 
-      currency: 'USD' 
+      currency: settings?.currency || 'USD' 
     }).format(amount);
   };
 
@@ -252,7 +259,7 @@ export default function Analytics() {
 
   return (
     <POSLayout>
-      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl">
+      <div className="container mx-auto py-6 px-4 sm:px-6 lg:px-8 max-w-7xl overflow-x-hidden">
         <div className="flex items-center justify-between mb-6">
           <div className="flex items-center gap-2">
             <Link to="/pos" className="text-slate-600 hover:text-slate-900">
@@ -659,6 +666,8 @@ export default function Analytics() {
             </Card>
           </TabsContent>
         </Tabs>
+        {/* Add extra space at the bottom for better scrolling */}
+        <div className="h-8 mb-8"></div>
       </div>
     </POSLayout>
   );

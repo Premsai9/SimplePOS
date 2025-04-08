@@ -204,7 +204,12 @@ export default function ProductCatalog({
                 <div className="p-2 sm:p-3">
                   <h3 className="text-xs sm:text-sm font-medium text-slate-800 truncate">{product.name}</h3>
                   <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-700">{settings?.currency || '$'} {product.price.toFixed(2)}</span>
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">
+                      {new Intl.NumberFormat('en-US', { 
+                        style: 'currency', 
+                        currency: settings?.currency || 'USD'
+                      }).format(product.price)}
+                    </span>
                     <span className="text-xs text-slate-500">Stock: {product.inventory}</span>
                   </div>
                 </div>
