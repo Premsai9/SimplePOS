@@ -40,3 +40,13 @@ export interface PaymentForm {
   amountTendered: number;
   paymentMethod: string;
 }
+
+export interface Settings {
+  currency: string;
+  taxRate: number;
+  storeName?: string;
+  storeAddress?: string;
+  storePhone?: string;
+  storeEmail?: string;
+  receiptFooter?: string;
+}

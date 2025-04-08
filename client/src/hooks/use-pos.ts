@@ -1,11 +1,13 @@
 import { useState, useEffect, useCallback } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient, apiRequest } from "@/lib/queryClient";
-import { Product, CartItem, Transaction, Category, PaymentForm } from "@/lib/types";
-
-const TAX_RATE = 0.08; // 8% tax rate
+import { Product, CartItem, Transaction, Category, PaymentForm, Settings } from "@/lib/types";
+import { useAuth } from "./use-auth";
 
 export function usePOS() {
+  // Get user and settings
+  const { user } = useAuth();
+  
   // State
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -22,10 +24,24 @@ export function usePOS() {
     error: false,
     errorMessage: "",
   });
+  
+  // Get settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ["/api/settings"],
+    enabled: !!user, // Only run this query if user is logged in
+  });
 
   // Queries
   const { data: products = [], isLoading: isProductsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products", selectedCategory],
+    queryFn: async () => {
+      const url = selectedCategory !== "All" 
+        ? `/api/products?category=${encodeURIComponent(selectedCategory)}`
+        : "/api/products";
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Failed to fetch products");
+      return response.json();
+    },
     select: (data: Product[]) => {
       if (!searchQuery) return data;
       const query = searchQuery.toLowerCase();
@@ -60,7 +76,9 @@ export function usePOS() {
   
   // Calculate tax after discount
   const discountedSubtotal = cartSubtotal - cappedDiscountAmount;
-  const cartTax = discountedSubtotal * TAX_RATE;
+  // Use user's tax rate or default to 7.5%
+  const taxRate = settings?.taxRate ? settings.taxRate / 100 : 0.075;
+  const cartTax = discountedSubtotal * taxRate;
   const cartTotal = discountedSubtotal + cartTax;
 
   // Mutations

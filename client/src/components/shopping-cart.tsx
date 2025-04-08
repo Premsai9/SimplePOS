@@ -1,7 +1,8 @@
-import { CartItem as CartItemType } from "@/lib/types";
+import { CartItem as CartItemType, Settings } from "@/lib/types";
 import { Button } from "@/components/ui/button";
 import { Trash, Minus, Plus } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { useQuery } from "@tanstack/react-query";
 
 interface ShoppingCartProps {
   items: CartItemType[];
@@ -24,6 +25,13 @@ interface CartItemProps {
 }
 
 function CartItem({ item, onUpdateQuantity, onRemoveItem }: CartItemProps) {
+  // Get user's currency from settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
+  
+  // Use currency from settings or default to USD
+  const currency = settings?.currency || 'USD';
   return (
     <div className="flex items-center p-2 sm:p-3 border border-slate-200 rounded-lg">
       <div className="h-10 w-10 sm:h-12 sm:w-12 bg-slate-100 rounded flex-shrink-0">
@@ -50,7 +58,7 @@ function CartItem({ item, onUpdateQuantity, onRemoveItem }: CartItemProps) {
           </button>
         </div>
         <div className="flex justify-between items-center mt-1">
-          <span className="text-xs sm:text-sm font-bold text-slate-700">${item.price.toFixed(2)}</span>
+          <span className="text-xs sm:text-sm font-bold text-slate-700">{currency} {item.price.toFixed(2)}</span>
           <div className="flex items-center">
             <button 
               className="h-5 w-5 sm:h-6 sm:w-6 bg-slate-100 rounded flex items-center justify-center text-slate-600 hover:bg-slate-200"
@@ -90,6 +98,15 @@ export default function ShoppingCart({
   onDiscount,
   discountAmount = 0,
 }: ShoppingCartProps) {
+  // Get user's currency from settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
+  
+  // Use currency from settings or default to USD
+  const currency = settings?.currency || 'USD';
+  // Get tax rate for display
+  const taxRate = settings?.taxRate || 7.5;
   return (
     <div className="w-full h-full flex flex-col bg-white shadow-sm border-l border-slate-200">
       <div className="p-2 sm:p-4 border-b border-slate-200">
@@ -158,25 +175,25 @@ export default function ShoppingCart({
         <div className="space-y-1">
           <div className="flex justify-between text-xs sm:text-sm">
             <span className="text-slate-600">Subtotal</span>
-            <span className="font-medium text-slate-800">${subtotal.toFixed(2)}</span>
+            <span className="font-medium text-slate-800">{currency} {subtotal.toFixed(2)}</span>
           </div>
           
           {discountAmount > 0 && (
             <div className="flex justify-between text-xs sm:text-sm">
               <span className="text-red-600">Discount</span>
-              <span className="font-medium text-red-600">-${discountAmount.toFixed(2)}</span>
+              <span className="font-medium text-red-600">-{currency} {discountAmount.toFixed(2)}</span>
             </div>
           )}
           
           <div className="flex justify-between text-xs sm:text-sm">
-            <span className="text-slate-600">Tax (8%)</span>
-            <span className="font-medium text-slate-800">${tax.toFixed(2)}</span>
+            <span className="text-slate-600">Tax ({taxRate}%)</span>
+            <span className="font-medium text-slate-800">{currency} {tax.toFixed(2)}</span>
           </div>
           
           <div className="pt-2 border-t border-slate-200 mt-2">
             <div className="flex justify-between">
               <span className="text-slate-800 font-medium text-xs sm:text-sm">Total</span>
-              <span className="text-base sm:text-lg font-bold text-slate-800">${total.toFixed(2)}</span>
+              <span className="text-base sm:text-lg font-bold text-slate-800">{currency} {total.toFixed(2)}</span>
             </div>
           </div>
         </div>
