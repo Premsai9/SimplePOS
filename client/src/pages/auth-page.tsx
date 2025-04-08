@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { z } from "zod";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useAuth } from "@/hooks/use-auth";
+import { useAuth } from "../hooks/use-auth";
 import { Loader2 } from "lucide-react";
 import { insertUserSchema } from "@shared/schema";
 
@@ -45,16 +45,15 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function AuthPage() {
   const [activeTab, setActiveTab] = useState<"login" | "register">("login");
-  // Fix issue with useAuth hook being recognized
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { user, loginMutation, registerMutation } = (useAuth as any)();
+  const { user, loginMutation, registerMutation } = useAuth();
   const [, setLocation] = useLocation();
 
   // Redirect if user is already logged in
-  if (user) {
-    setLocation("/");
-    return null;
-  }
+  useEffect(() => {
+    if (user) {
+      setLocation("/");
+    }
+  }, [user, setLocation]);
 
   const loginForm = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
