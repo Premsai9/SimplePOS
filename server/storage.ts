@@ -250,4 +250,205 @@ export class MemStorage implements IStorage {
   }
 }
 
-export const storage = new MemStorage();
+import { db } from './db';
+import { eq, and, isNull, desc } from 'drizzle-orm';
+
+export class DatabaseStorage implements IStorage {
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.id, id));
+    return user;
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.username, username));
+    return user;
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(insertUser).returning();
+    return user;
+  }
+
+  // Product methods
+  async getAllProducts(): Promise<Product[]> {
+    return db.select().from(products);
+  }
+
+  async getProductById(id: number): Promise<Product | undefined> {
+    const [product] = await db.select().from(products).where(eq(products.id, id));
+    return product;
+  }
+
+  async createProduct(product: InsertProduct): Promise<Product> {
+    const [newProduct] = await db.insert(products).values(product).returning();
+    return newProduct;
+  }
+
+  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+    const [updatedProduct] = await db
+      .update(products)
+      .set(product)
+      .where(eq(products.id, id))
+      .returning();
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    const result = await db.delete(products).where(eq(products.id, id));
+    return !!result;
+  }
+
+  async getProductsByCategory(category: string): Promise<Product[]> {
+    if (category === "All") {
+      return this.getAllProducts();
+    }
+    return db.select().from(products).where(eq(products.category, category));
+  }
+
+  // Cart methods
+  async getCartItems(transactionId?: number): Promise<CartItem[]> {
+    if (transactionId) {
+      return db.select().from(cartItems).where(eq(cartItems.transactionId, transactionId));
+    }
+    return db.select().from(cartItems).where(isNull(cartItems.transactionId));
+  }
+
+  async addToCart(item: InsertCartItem): Promise<CartItem> {
+    // Check if this product is already in the cart
+    let existingItem;
+    if (item.transactionId) {
+      const [found] = await db
+        .select()
+        .from(cartItems)
+        .where(
+          and(
+            eq(cartItems.productId, item.productId),
+            eq(cartItems.transactionId, item.transactionId)
+          )
+        );
+      existingItem = found;
+    } else {
+      const [found] = await db
+        .select()
+        .from(cartItems)
+        .where(
+          and(
+            eq(cartItems.productId, item.productId),
+            isNull(cartItems.transactionId)
+          )
+        );
+      existingItem = found;
+    }
+
+    if (existingItem) {
+      // Update quantity instead of adding new item
+      return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1)) as Promise<CartItem>;
+    }
+
+    const [newItem] = await db.insert(cartItems).values(item).returning();
+    return newItem;
+  }
+
+  async updateCartItem(id: number, quantity: number): Promise<CartItem | undefined> {
+    if (quantity <= 0) {
+      await this.removeCartItem(id);
+      return undefined;
+    }
+
+    const [updatedItem] = await db
+      .update(cartItems)
+      .set({ quantity })
+      .where(eq(cartItems.id, id))
+      .returning();
+    return updatedItem;
+  }
+
+  async removeCartItem(id: number): Promise<boolean> {
+    const result = await db.delete(cartItems).where(eq(cartItems.id, id));
+    return !!result;
+  }
+
+  async clearCart(transactionId?: number): Promise<boolean> {
+    if (transactionId) {
+      // Clear only items for a specific transaction
+      await db.delete(cartItems).where(eq(cartItems.transactionId, transactionId));
+    } else {
+      // Clear items not associated with any transaction
+      await db.delete(cartItems).where(isNull(cartItems.transactionId));
+    }
+    return true;
+  }
+
+  // Transaction methods
+  async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
+    const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+    return newTransaction;
+  }
+
+  async getTransaction(id: number): Promise<Transaction | undefined> {
+    const [transaction] = await db
+      .select()
+      .from(transactions)
+      .where(eq(transactions.id, id));
+    return transaction;
+  }
+
+  async getAllTransactions(): Promise<Transaction[]> {
+    return db.select().from(transactions).orderBy(desc(transactions.date));
+  }
+
+  async completeTransaction(id: number, paymentMethod: string): Promise<Transaction | undefined> {
+    const [updatedTransaction] = await db
+      .update(transactions)
+      .set({ completed: true, paymentMethod })
+      .where(eq(transactions.id, id))
+      .returning();
+    return updatedTransaction;
+  }
+
+  // Category methods
+  async getAllCategories(): Promise<Category[]> {
+    return db.select().from(categories);
+  }
+
+  async createCategory(category: InsertCategory): Promise<Category> {
+    const [newCategory] = await db.insert(categories).values(category).returning();
+    return newCategory;
+  }
+}
+
+// Initialize the database with sample data
+async function initializeDatabase() {
+  // Check if we have categories
+  const existingCategories = await db.select().from(categories);
+  
+  if (existingCategories.length === 0) {
+    // Add default categories
+    const defaultCategories = ["All", "Food", "Beverages", "Household", "Electronics"];
+    for (const name of defaultCategories) {
+      await db.insert(categories).values({ name });
+    }
+    
+    // Add sample products
+    const sampleProducts: InsertProduct[] = [
+      { name: "Premium Coffee", price: 3.99, category: "Beverages", inventory: 45, imageUrl: "https://images.unsplash.com/photo-1553787762-b5f5721f3b8d?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Club Sandwich", price: 5.49, category: "Food", inventory: 28, imageUrl: "https://images.unsplash.com/photo-1512152272829-e3139592d56f?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Paper Towels", price: 2.99, category: "Household", inventory: 60, imageUrl: "https://images.unsplash.com/photo-1594311431621-0df167499096?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Wireless Headphones", price: 49.99, category: "Electronics", inventory: 12, imageUrl: "https://images.unsplash.com/photo-1593162711562-9e0af20c8a3b?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Potato Chips", price: 1.49, category: "Food", inventory: 87, imageUrl: "https://images.unsplash.com/photo-1561736778-92e52a7769ef?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Chocolate Bar", price: 2.25, category: "Food", inventory: 52, imageUrl: "https://images.unsplash.com/photo-1560624052-449f5ddf0c31?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "Bottled Water", price: 0.99, category: "Beverages", inventory: 124, imageUrl: "https://images.unsplash.com/photo-1610885634663-71f958364a6b?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+      { name: "AA Batteries (4pk)", price: 3.49, category: "Electronics", inventory: 35, imageUrl: "https://images.unsplash.com/photo-1582452932537-6dbb452652c8?ixlib=rb-4.0.3&auto=format&fit=crop&w=200&h=200&q=80" },
+    ];
+    
+    for (const product of sampleProducts) {
+      await db.insert(products).values(product);
+    }
+  }
+}
+
+// Initialize the database
+initializeDatabase().catch(console.error);
+
+export const storage = new DatabaseStorage();

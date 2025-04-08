@@ -1,6 +1,7 @@
 import { ReactNode, useState, useEffect } from "react";
 import { format } from "date-fns";
-import { ScanBarcode, ChevronDown } from "lucide-react";
+import { ScanBarcode, ChevronDown, History } from "lucide-react";
+import { Link } from "wouter";
 
 interface POSLayoutProps {
   children: ReactNode;
@@ -38,6 +39,12 @@ export default function POSLayout({ children }: POSLayoutProps) {
           
           {/* User Menu */}
           <div className="flex items-center space-x-4">
+            <Link href="/transactions">
+              <button className="flex items-center text-slate-700 hover:text-blue-500 text-sm">
+                <History size={16} className="mr-1" />
+                <span>Transaction History</span>
+              </button>
+            </Link>
             <span className="text-sm text-slate-600">{formattedDateTime}</span>
             <div className="relative">
               <button 

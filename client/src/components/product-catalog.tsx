@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown } from "lucide-react";
+import { Search, ChevronDown, Plus } from "lucide-react";
 import { Product, Category } from "@/lib/types";
 import { 
   DropdownMenu,
@@ -10,6 +10,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
+import AddProductModal from "./add-product-modal";
 
 interface ProductCatalogProps {
   products: Product[];
@@ -33,12 +34,24 @@ export default function ProductCatalog({
   isLoading,
 }: ProductCatalogProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
 
   return (
     <div className="w-full lg:w-7/12 h-1/2 lg:h-full bg-white overflow-hidden flex flex-col shadow-sm">
       <div className="p-4 border-b border-slate-200">
         <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-slate-800">Product Catalog</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-lg font-semibold text-slate-800">Product Catalog</h2>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              className="h-8 px-2 text-green-600 hover:text-green-700 hover:bg-green-50"
+              onClick={() => setIsAddProductModalOpen(true)}
+            >
+              <Plus className="h-4 w-4 mr-1" />
+              <span className="text-xs">Add Product</span>
+            </Button>
+          </div>
           <div className="flex space-x-2">
             {/* Category Filter Dropdown */}
             <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -151,6 +164,16 @@ export default function ProductCatalog({
           ))
         )}
       </div>
+      
+      {/* Add Product Modal */}
+      <AddProductModal
+        isOpen={isAddProductModalOpen}
+        onClose={() => setIsAddProductModalOpen(false)}
+        categories={categories}
+        onSuccess={() => {
+          // Will automatically refresh the product list using React Query's cache invalidation
+        }}
+      />
     </div>
   );
 }
