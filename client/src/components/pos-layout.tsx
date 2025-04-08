@@ -58,7 +58,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
               {userMenuOpen && (
                 <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 z-10">
                   <Link href="/settings">
-                    <a className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Settings</a>
+                    <span className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Settings</span>
                   </Link>
                   <a href="#" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Help</a>
                   <div className="border-t border-slate-200"></div>

@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown, Plus, Edit } from "lucide-react";
+import { Search, ChevronDown, Plus, Edit, Tag } from "lucide-react";
 import { Product, Category } from "@/lib/types";
 import { 
   DropdownMenu,
@@ -12,6 +12,7 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import AddProductModal from "./add-product-modal";
 import EditProductModal from "./edit-product-modal";
+import CategoryManagementModal from "./category-management-modal";
 
 interface ProductCatalogProps {
   products: Product[];
@@ -37,6 +38,7 @@ export default function ProductCatalog({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
   const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   return (
@@ -99,6 +101,18 @@ export default function ProductCatalog({
         
         {/* Category Pills - Desktop only */}
         <div className="hidden sm:flex space-x-1 overflow-x-auto pb-2">
+          <div className="flex items-center space-x-1 mr-1">
+            <Button
+              variant="outline"
+              size="sm"
+              className="px-2 py-1 h-7 bg-white border border-slate-300 text-slate-600 hover:bg-slate-50"
+              onClick={() => setIsCategoryModalOpen(true)}
+            >
+              <Tag className="h-3 w-3 mr-1" />
+              <span className="text-xs">Manage</span>
+            </Button>
+          </div>
+          
           {categories.map((category) => (
             <Button
               key={category.id}
@@ -209,6 +223,16 @@ export default function ProductCatalog({
         product={selectedProduct}
         onSuccess={() => {
           setSelectedProduct(null);
+        }}
+      />
+
+      {/* Category Management Modal */}
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={categories}
+        onSuccess={() => {
+          // Will automatically refresh categories using React Query's cache invalidation
         }}
       />
     </div>

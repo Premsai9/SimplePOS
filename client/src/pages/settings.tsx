@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Save, Tag } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +11,7 @@ import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
+import CategoryManagementModal from "@/components/category-management-modal";
 import {
   Form,
   FormControl,
@@ -22,6 +24,7 @@ import {
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { z } from "zod";
+import { Category } from "@/lib/types";
 
 // Define settings schema
 const settingsSchema = z.object({
@@ -50,6 +53,12 @@ type SettingsFormValues = z.infer<typeof settingsSchema>;
 export default function Settings() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
+  const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  
+  // Fetch categories
+  const { data: categories = [] } = useQuery<Category[]>({
+    queryKey: ['/api/categories'],
+  });
   
   // Initialize form with default values
   const defaultValues: SettingsFormValues = {
@@ -415,6 +424,27 @@ export default function Settings() {
                   
                   <Separator className="my-4" />
                   
+                  <div className="flex flex-col space-y-4">
+                    <div className="flex flex-row items-center justify-between rounded-lg border p-3 shadow-sm">
+                      <div className="space-y-0.5">
+                        <Label>Product Categories</Label>
+                        <p className="text-sm text-muted-foreground">
+                          Manage categories for organizing your products
+                        </p>
+                      </div>
+                      <Button
+                        variant="outline"
+                        className="ml-3"
+                        onClick={() => setIsCategoryModalOpen(true)}
+                      >
+                        <Tag className="h-4 w-4 mr-2" />
+                        Manage Categories
+                      </Button>
+                    </div>
+                  </div>
+                  
+                  <Separator className="my-4" />
+                  
                   <FormField
                     control={form.control}
                     name="defaultCategory"
@@ -454,6 +484,16 @@ export default function Settings() {
           </Tabs>
         </form>
       </Form>
+
+      {/* Category Management Modal */}
+      <CategoryManagementModal
+        isOpen={isCategoryModalOpen}
+        onClose={() => setIsCategoryModalOpen(false)}
+        categories={categories}
+        onSuccess={() => {
+          // Will automatically refresh categories using React Query's cache invalidation
+        }}
+      />
     </div>
   );
 }
