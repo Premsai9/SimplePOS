@@ -4,6 +4,7 @@ import ProductCatalog from "@/components/product-catalog";
 import ShoppingCart from "@/components/shopping-cart";
 import PaymentModal from "@/components/payment-modal";
 import ReceiptModal from "@/components/receipt-modal";
+import DiscountModal from "@/components/discount-modal";
 import { usePOS } from "@/hooks/use-pos";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,10 @@ export default function POS() {
     setPaymentModalOpen,
     isReceiptModalOpen,
     setReceiptModalOpen,
+    isDiscountModalOpen,
+    setDiscountModalOpen,
+    discountAmount,
+    applyDiscount,
     currentTransaction,
     processPayment,
     completeSale,
@@ -77,6 +82,8 @@ export default function POS() {
           total={cartTotal}
           onCheckout={() => setPaymentModalOpen(true)}
           isLoading={isLoading.cart}
+          onDiscount={() => setDiscountModalOpen(true)}
+          discountAmount={discountAmount}
         />
       </div>
 
@@ -98,6 +105,14 @@ export default function POS() {
           onNewSale={completeSale}
         />
       )}
+
+      {/* Discount Modal */}
+      <DiscountModal
+        isOpen={isDiscountModalOpen}
+        onClose={() => setDiscountModalOpen(false)}
+        subtotal={cartSubtotal}
+        onApplyDiscount={applyDiscount}
+      />
     </POSLayout>
   );
 }

@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { X, Printer, Mail } from "lucide-react";
 import { Transaction } from "@/lib/types";
 import { format } from "date-fns";
-import { useReactToPrint } from "react-to-print";
 
 interface ReceiptModalProps {
   isOpen: boolean;
@@ -21,10 +20,9 @@ export default function ReceiptModal({
 }: ReceiptModalProps) {
   const receiptRef = useRef<HTMLDivElement>(null);
 
-  const handlePrint = useReactToPrint({
-    content: () => receiptRef.current,
-    documentTitle: `Receipt-${transaction.id}`,
-  });
+  const handlePrint = () => {
+    window.print();
+  };
 
   const handleEmailReceipt = () => {
     alert("Email receipt functionality would be implemented here");
@@ -95,6 +93,14 @@ export default function ReceiptModal({
                 <span>Subtotal:</span>
                 <span>${transaction.subtotal.toFixed(2)}</span>
               </div>
+              
+              {transaction.discount && transaction.discount > 0 && (
+                <div className="flex justify-between text-sm text-red-600">
+                  <span>Discount {transaction.discountType === 'percentage' ? `(${(transaction.discount / transaction.subtotal * 100).toFixed(0)}%)` : ''}:</span>
+                  <span>-${transaction.discount.toFixed(2)}</span>
+                </div>
+              )}
+              
               <div className="flex justify-between text-sm">
                 <span>Tax (8%):</span>
                 <span>${transaction.tax.toFixed(2)}</span>

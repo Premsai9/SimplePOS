@@ -13,6 +13,8 @@ interface ShoppingCartProps {
   total: number;
   onCheckout: () => void;
   isLoading: boolean;
+  onDiscount?: () => void;
+  discountAmount?: number;
 }
 
 interface CartItemProps {
@@ -85,6 +87,8 @@ export default function ShoppingCart({
   total,
   onCheckout,
   isLoading,
+  onDiscount,
+  discountAmount = 0,
 }: ShoppingCartProps) {
   return (
     <div className="w-full lg:w-5/12 h-1/2 lg:h-full flex flex-col bg-white shadow-sm border-l border-slate-200">
@@ -156,10 +160,19 @@ export default function ShoppingCart({
             <span className="text-slate-600">Subtotal</span>
             <span className="font-medium text-slate-800">${subtotal.toFixed(2)}</span>
           </div>
+          
+          {discountAmount > 0 && (
+            <div className="flex justify-between text-sm">
+              <span className="text-red-600">Discount</span>
+              <span className="font-medium text-red-600">-${discountAmount.toFixed(2)}</span>
+            </div>
+          )}
+          
           <div className="flex justify-between text-sm">
             <span className="text-slate-600">Tax (8%)</span>
             <span className="font-medium text-slate-800">${tax.toFixed(2)}</span>
           </div>
+          
           <div className="pt-2 border-t border-slate-200 mt-2">
             <div className="flex justify-between">
               <span className="text-slate-800 font-medium">Total</span>
@@ -181,9 +194,10 @@ export default function ShoppingCart({
         <Button 
           variant="secondary" 
           className="flex-1"
+          onClick={onDiscount}
           disabled={items.length === 0}
         >
-          Discount
+          {discountAmount > 0 ? 'Edit Discount' : 'Discount'}
         </Button>
         <Button 
           className="flex-1 bg-blue-500 hover:bg-blue-600 text-white" 

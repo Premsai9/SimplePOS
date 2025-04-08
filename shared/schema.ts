@@ -54,18 +54,24 @@ export const transactions = pgTable("transactions", {
   subtotal: doublePrecision("subtotal").notNull(),
   tax: doublePrecision("tax").notNull(),
   total: doublePrecision("total").notNull(),
+  discount: doublePrecision("discount"),
+  discountType: text("discount_type"),
   paymentMethod: text("payment_method").notNull(),
   cashierId: integer("cashier_id"),
   completed: boolean("completed").notNull().default(false),
+  status: text("status").default("active"),
 });
 
 export const insertTransactionSchema = createInsertSchema(transactions).pick({
   subtotal: true,
   tax: true,
   total: true,
+  discount: true,
+  discountType: true,
   paymentMethod: true,
   cashierId: true,
   completed: true,
+  status: true,
 });
 
 // Categories

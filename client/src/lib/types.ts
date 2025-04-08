@@ -22,10 +22,13 @@ export interface Transaction {
   subtotal: number;
   tax: number;
   total: number;
+  discount?: number;
+  discountType?: 'percentage' | 'amount';
   paymentMethod: string;
   cashierId?: number;
   completed: boolean;
   items?: CartItem[];
+  status?: 'active' | 'held' | 'completed' | 'canceled';
 }
 
 export interface Category {

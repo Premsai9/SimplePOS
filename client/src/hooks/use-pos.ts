@@ -11,6 +11,9 @@ export function usePOS() {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [isPaymentModalOpen, setPaymentModalOpen] = useState<boolean>(false);
   const [isReceiptModalOpen, setReceiptModalOpen] = useState<boolean>(false);
+  const [isDiscountModalOpen, setDiscountModalOpen] = useState<boolean>(false);
+  const [discount, setDiscount] = useState<number>(0);
+  const [discountType, setDiscountType] = useState<'percentage' | 'amount'>('percentage');
   const [currentTransaction, setCurrentTransaction] = useState<Transaction | null>(null);
   const [isLoading, setIsLoading] = useState({
     products: false,
@@ -21,7 +24,7 @@ export function usePOS() {
   });
 
   // Queries
-  const { data: products = [], isLoading: isProductsLoading } = useQuery({
+  const { data: products = [], isLoading: isProductsLoading } = useQuery<Product[]>({
     queryKey: ["/api/products", selectedCategory],
     select: (data: Product[]) => {
       if (!searchQuery) return data;
@@ -33,18 +36,29 @@ export function usePOS() {
     }
   });
 
-  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery({
+  const { data: categories = [], isLoading: isCategoriesLoading } = useQuery<Category[]>({
     queryKey: ["/api/categories"],
   });
 
-  const { data: cartItems = [], isLoading: isCartLoading } = useQuery({
+  const { data: cartItems = [], isLoading: isCartLoading } = useQuery<CartItem[]>({
     queryKey: ["/api/cart"],
   });
 
   // Calculations
-  const cartSubtotal = cartItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-  const cartTax = cartSubtotal * TAX_RATE;
-  const cartTotal = cartSubtotal + cartTax;
+  const cartSubtotal = cartItems.reduce((sum: number, item: CartItem) => sum + (item.price * item.quantity), 0);
+  
+  // Calculate discount amount
+  const discountAmount = discountType === 'percentage' 
+    ? (cartSubtotal * discount / 100) 
+    : discount;
+    
+  // Apply discount cap - discount cannot exceed subtotal
+  const cappedDiscountAmount = Math.min(discountAmount, cartSubtotal);
+  
+  // Calculate tax after discount
+  const discountedSubtotal = cartSubtotal - cappedDiscountAmount;
+  const cartTax = discountedSubtotal * TAX_RATE;
+  const cartTotal = discountedSubtotal + cartTax;
 
   // Mutations
   const addToCartMutation = useMutation({
@@ -121,8 +135,11 @@ export function usePOS() {
         subtotal: cartSubtotal,
         tax: cartTax,
         total: cartTotal,
+        discount: discount > 0 ? cappedDiscountAmount : undefined,
+        discountType: discount > 0 ? discountType : undefined,
         paymentMethod,
         completed: true,
+        status: 'completed',
       });
     },
     onSuccess: async (response) => {
@@ -174,6 +191,12 @@ export function usePOS() {
     clearCartMutation.mutate();
   }, [clearCartMutation]);
 
+  const applyDiscount = useCallback((discountAmount: number, discountType: 'percentage' | 'amount') => {
+    setDiscount(discountAmount);
+    setDiscountType(discountType);
+    setDiscountModalOpen(false);
+  }, []);
+
   const processPayment = useCallback((payment: PaymentForm) => {
     setIsLoading(prev => ({ ...prev, payment: true }));
     createTransactionMutation.mutate(payment.paymentMethod);
@@ -183,6 +206,9 @@ export function usePOS() {
     setCurrentTransaction(null);
     setReceiptModalOpen(false);
     clearCart();
+    // Reset discount when completing sale
+    setDiscount(0);
+    setDiscountType('percentage');
   }, [clearCart]);
 
   // Update loading states
@@ -207,6 +233,10 @@ export function usePOS() {
     cartTotal,
     isPaymentModalOpen,
     isReceiptModalOpen,
+    isDiscountModalOpen,
+    discount,
+    discountType,
+    discountAmount: cappedDiscountAmount,
     currentTransaction,
     isLoading,
 
@@ -219,6 +249,8 @@ export function usePOS() {
     clearCart,
     setPaymentModalOpen,
     setReceiptModalOpen,
+    setDiscountModalOpen,
+    applyDiscount,
     processPayment,
     completeSale,
   };

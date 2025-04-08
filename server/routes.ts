@@ -119,7 +119,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ message: "Product not found" });
       }
       
-      if (product.inventory < cartItemData.quantity) {
+      const quantity = cartItemData.quantity || 1; // Default to 1 if quantity is undefined
+      
+      if (product.inventory < quantity) {
         return res.status(400).json({ 
           message: `Not enough inventory. Only ${product.inventory} available.` 
         });
@@ -128,6 +130,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Use the current product price if not specified
       if (!cartItemData.price) {
         cartItemData.price = product.price;
+      }
+      
+      // Use the default quantity if not specified
+      if (cartItemData.quantity === undefined) {
+        cartItemData.quantity = 1;
       }
       
       const cartItem = await storage.addToCart(cartItemData);
@@ -265,8 +272,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const transactionData = insertTransactionSchema.parse(req.body);
       
-      // Create the transaction
-      const transaction = await storage.createTransaction(transactionData);
+      // Create the transaction with discount information if provided
+      const transaction = await storage.createTransaction({
+        ...transactionData,
+        discount: req.body.discount, // Add discount amount
+        discountType: req.body.discountType, // Add discount type
+        status: req.body.status || 'completed'
+      });
       
       // Get current cart items
       const cartItems = await storage.getCartItems();
