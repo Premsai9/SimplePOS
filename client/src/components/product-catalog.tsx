@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Search, ChevronDown, Plus } from "lucide-react";
+import { Search, ChevronDown, Plus, Edit } from "lucide-react";
 import { Product, Category } from "@/lib/types";
 import { 
   DropdownMenu,
@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Skeleton } from "@/components/ui/skeleton";
 import AddProductModal from "./add-product-modal";
+import EditProductModal from "./edit-product-modal";
 
 interface ProductCatalogProps {
   products: Product[];
@@ -35,6 +36,8 @@ export default function ProductCatalog({
 }: ProductCatalogProps) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [isAddProductModalOpen, setIsAddProductModalOpen] = useState(false);
+  const [isEditProductModalOpen, setIsEditProductModalOpen] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   return (
     <div className="w-full h-full bg-white overflow-hidden flex flex-col shadow-sm">
@@ -139,27 +142,48 @@ export default function ProductCatalog({
           products.map((product) => (
             <div
               key={product.id}
-              className="bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer active:bg-slate-50"
-              onClick={() => onAddToCart(product)}
+              className="bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden relative"
             >
-              <div className="h-24 sm:h-32 bg-slate-100 flex items-center justify-center">
-                {product.imageUrl ? (
-                  <img 
-                    src={product.imageUrl} 
-                    alt={product.name} 
-                    className="h-full w-full object-cover"
-                  />
-                ) : (
-                  <div className="h-full w-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs sm:text-sm">
-                    No Image
-                  </div>
-                )}
+              {/* Edit button overlay */}
+              <div className="absolute top-2 right-2 z-10">
+                <Button
+                  variant="outline"
+                  size="icon"
+                  className="h-6 w-6 bg-white bg-opacity-80 hover:bg-white hover:bg-opacity-100 border-slate-200"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedProduct(product);
+                    setIsEditProductModalOpen(true);
+                  }}
+                >
+                  <Edit className="h-3 w-3 text-slate-600" />
+                </Button>
               </div>
-              <div className="p-2 sm:p-3">
-                <h3 className="text-xs sm:text-sm font-medium text-slate-800 truncate">{product.name}</h3>
-                <div className="flex justify-between items-center mt-1">
-                  <span className="text-xs sm:text-sm font-bold text-slate-700">${product.price.toFixed(2)}</span>
-                  <span className="text-xs text-slate-500">Stock: {product.inventory}</span>
+              
+              {/* Product content */}
+              <div 
+                className="cursor-pointer active:bg-slate-50"
+                onClick={() => onAddToCart(product)}
+              >
+                <div className="h-24 sm:h-32 bg-slate-100 flex items-center justify-center">
+                  {product.imageUrl ? (
+                    <img 
+                      src={product.imageUrl} 
+                      alt={product.name} 
+                      className="h-full w-full object-cover"
+                    />
+                  ) : (
+                    <div className="h-full w-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs sm:text-sm">
+                      No Image
+                    </div>
+                  )}
+                </div>
+                <div className="p-2 sm:p-3">
+                  <h3 className="text-xs sm:text-sm font-medium text-slate-800 truncate">{product.name}</h3>
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs sm:text-sm font-bold text-slate-700">${product.price.toFixed(2)}</span>
+                    <span className="text-xs text-slate-500">Stock: {product.inventory}</span>
+                  </div>
                 </div>
               </div>
             </div>
@@ -174,6 +198,17 @@ export default function ProductCatalog({
         categories={categories}
         onSuccess={() => {
           // Will automatically refresh the product list using React Query's cache invalidation
+        }}
+      />
+      
+      {/* Edit Product Modal */}
+      <EditProductModal
+        isOpen={isEditProductModalOpen}
+        onClose={() => setIsEditProductModalOpen(false)}
+        categories={categories}
+        product={selectedProduct}
+        onSuccess={() => {
+          setSelectedProduct(null);
         }}
       />
     </div>

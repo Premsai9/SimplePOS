@@ -3,6 +3,7 @@ import { Toaster } from "@/components/ui/toaster";
 import NotFound from "@/pages/not-found";
 import POS from "@/pages/pos";
 import TransactionHistory from "@/pages/transactions";
+import Settings from "@/pages/settings";
 
 function Router() {
   return (
@@ -10,6 +11,7 @@ function Router() {
       <Route path="/" component={POS} />
       <Route path="/pos" component={POS} />
       <Route path="/transactions" component={TransactionHistory} />
+      <Route path="/settings" component={Settings} />
       <Route component={NotFound} />
     </Switch>
   );
