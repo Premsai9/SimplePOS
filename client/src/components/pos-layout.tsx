@@ -1,6 +1,6 @@
 import { ReactNode, useState, useEffect } from "react";
 import { format } from "date-fns";
-import { ScanBarcode, ChevronDown, History } from "lucide-react";
+import { ScanBarcode, ChevronDown, History, BarChart } from "lucide-react";
 import { Link } from "wouter";
 import { useAuth } from "../hooks/use-auth";
 
@@ -46,6 +46,13 @@ export default function POSLayout({ children }: POSLayoutProps) {
                 <History size={16} className="mr-1" />
                 <span className="hidden xs:inline">Transaction History</span>
                 <span className="xs:hidden">History</span>
+              </button>
+            </Link>
+            <Link href="/analytics">
+              <button className="flex items-center text-slate-700 hover:text-blue-500 text-xs sm:text-sm">
+                <BarChart size={16} className="mr-1" />
+                <span className="hidden xs:inline">Analytics</span>
+                <span className="xs:hidden">Analytics</span>
               </button>
             </Link>
             <span className="hidden sm:inline text-xs sm:text-sm text-slate-600">{formattedDateTime}</span>

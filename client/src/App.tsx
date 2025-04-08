@@ -4,6 +4,7 @@ import NotFound from "@/pages/not-found";
 import POS from "@/pages/pos";
 import TransactionHistory from "@/pages/transactions";
 import Settings from "@/pages/settings";
+import Analytics from "@/pages/analytics";
 import AuthPage from "@/pages/auth-page";
 import { AuthProvider } from "@/hooks/use-auth";
 import { ProtectedRoute } from "@/lib/protected-route";
@@ -14,6 +15,7 @@ function Router() {
       <ProtectedRoute path="/" component={POS} />
       <ProtectedRoute path="/pos" component={POS} />
       <ProtectedRoute path="/transactions" component={TransactionHistory} />
+      <ProtectedRoute path="/analytics" component={Analytics} />
       <ProtectedRoute path="/settings" component={Settings} />
       <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
