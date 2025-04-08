@@ -2,6 +2,7 @@ import { ReactNode, useState, useEffect } from "react";
 import { format } from "date-fns";
 import { ScanBarcode, ChevronDown, History } from "lucide-react";
 import { Link } from "wouter";
+import { useAuth } from "../hooks/use-auth";
 
 interface POSLayoutProps {
   children: ReactNode;
@@ -10,6 +11,7 @@ interface POSLayoutProps {
 export default function POSLayout({ children }: POSLayoutProps) {
   const [currentDateTime, setCurrentDateTime] = useState(new Date());
   const [userMenuOpen, setUserMenuOpen] = useState(false);
+  const { user, logoutMutation } = useAuth();
 
   // Update the current date and time every minute
   useEffect(() => {
@@ -52,7 +54,7 @@ export default function POSLayout({ children }: POSLayoutProps) {
                 className="flex items-center space-x-1 text-slate-700 hover:text-blue-500"
                 onClick={() => setUserMenuOpen(!userMenuOpen)}
               >
-                <span className="text-sm font-medium">Cashier</span>
+                <span className="text-sm font-medium">{user?.username || "Cashier"}</span>
                 <ChevronDown size={14} />
               </button>
               {userMenuOpen && (
@@ -62,7 +64,13 @@ export default function POSLayout({ children }: POSLayoutProps) {
                   </Link>
                   <a href="#" className="block px-4 py-2 text-sm text-slate-700 hover:bg-slate-100">Help</a>
                   <div className="border-t border-slate-200"></div>
-                  <a href="#" className="block px-4 py-2 text-sm text-red-600 hover:bg-slate-100">Logout</a>
+                  <button 
+                    onClick={() => logoutMutation.mutate()} 
+                    className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-slate-100"
+                    disabled={logoutMutation.isPending}
+                  >
+                    {logoutMutation.isPending ? "Logging out..." : "Logout"}
+                  </button>
                 </div>
               )}
             </div>
