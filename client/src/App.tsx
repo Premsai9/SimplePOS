@@ -4,14 +4,18 @@ import NotFound from "@/pages/not-found";
 import POS from "@/pages/pos";
 import TransactionHistory from "@/pages/transactions";
 import Settings from "@/pages/settings";
+import AuthPage from "@/pages/auth-page";
+import { AuthProvider } from "@/hooks/use-auth";
+import { ProtectedRoute } from "@/lib/protected-route";
 
 function Router() {
   return (
     <Switch>
-      <Route path="/" component={POS} />
-      <Route path="/pos" component={POS} />
-      <Route path="/transactions" component={TransactionHistory} />
-      <Route path="/settings" component={Settings} />
+      <ProtectedRoute path="/" component={POS} />
+      <ProtectedRoute path="/pos" component={POS} />
+      <ProtectedRoute path="/transactions" component={TransactionHistory} />
+      <ProtectedRoute path="/settings" component={Settings} />
+      <Route path="/auth" component={AuthPage} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -19,10 +23,10 @@ function Router() {
 
 function App() {
   return (
-    <>
+    <AuthProvider>
       <Router />
       <Toaster />
-    </>
+    </AuthProvider>
   );
 }
 

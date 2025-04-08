@@ -1,4 +1,4 @@
-import express, { type Express, Request, Response } from "express";
+import express, { type Express, Request, Response, NextFunction } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { 
@@ -8,8 +8,20 @@ import {
   insertCategorySchema
 } from "@shared/schema";
 import { z } from "zod";
+import { setupAuth } from "./auth";
+
+// Middleware to check if user is authenticated
+function isAuthenticated(req: Request, res: Response, next: NextFunction) {
+  if (req.isAuthenticated()) {
+    return next();
+  }
+  return res.status(401).json({ message: "Unauthorized: Please log in" });
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
+  // Setup authentication system
+  setupAuth(app);
+  
   // Define API routes
   const apiRouter = express.Router();
 
@@ -41,7 +53,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(product);
   });
 
-  apiRouter.post("/products", async (req: Request, res: Response) => {
+  apiRouter.post("/products", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const productData = insertProductSchema.parse(req.body);
       const product = await storage.createProduct(productData);
@@ -54,7 +66,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.put("/products/:id", async (req: Request, res: Response) => {
+  apiRouter.put("/products/:id", isAuthenticated, async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid product ID" });
@@ -77,7 +89,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  apiRouter.delete("/products/:id", async (req: Request, res: Response) => {
+  apiRouter.delete("/products/:id", isAuthenticated, async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid product ID" });
@@ -335,7 +347,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(categories);
   });
 
-  apiRouter.post("/categories", async (req: Request, res: Response) => {
+  apiRouter.post("/categories", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
       const category = await storage.createCategory(categoryData);

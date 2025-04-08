@@ -105,7 +105,14 @@ export class MemStorage implements IStorage {
 
   async createUser(insertUser: InsertUser): Promise<User> {
     const id = this.userId++;
-    const user: User = { ...insertUser, id };
+    const user: User = { 
+      ...insertUser, 
+      id,
+      role: "user",
+      createdAt: new Date(),
+      email: insertUser.email || null,
+      fullName: insertUser.fullName || null
+    };
     this.users.set(id, user);
     return user;
   }
@@ -121,7 +128,12 @@ export class MemStorage implements IStorage {
 
   async createProduct(product: InsertProduct): Promise<Product> {
     const id = this.productId++;
-    const newProduct: Product = { ...product, id };
+    const newProduct: Product = { 
+      ...product, 
+      id,
+      inventory: product.inventory || 0,
+      imageUrl: product.imageUrl || null
+    };
     this.products.set(id, newProduct);
     return newProduct;
   }
@@ -159,7 +171,9 @@ export class MemStorage implements IStorage {
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
     // Check if this product is already in the cart
-    const existingItems = await this.getCartItems(item.transactionId);
+    // Handle null, undefined correctly for transaction ID
+    const txId = item.transactionId !== null && item.transactionId !== undefined ? item.transactionId : undefined;
+    const existingItems = await this.getCartItems(txId);
     const existingItem = existingItems.find(i => i.productId === item.productId);
 
     if (existingItem) {
@@ -168,7 +182,12 @@ export class MemStorage implements IStorage {
     }
 
     const id = this.cartItemId++;
-    const newItem: CartItem = { ...item, id };
+    const newItem: CartItem = { 
+      ...item, 
+      id,
+      transactionId: item.transactionId || null,
+      quantity: item.quantity || 1
+    };
     this.cartItems.set(id, newItem);
     return newItem;
   }
@@ -215,7 +234,16 @@ export class MemStorage implements IStorage {
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
     const id = this.transactionId++;
     const date = new Date();
-    const newTransaction: Transaction = { ...transaction, id, date };
+    const newTransaction: Transaction = { 
+      ...transaction, 
+      id, 
+      date,
+      status: transaction.status || null,
+      completed: transaction.completed || false,
+      discount: transaction.discount || null,
+      discountType: transaction.discountType || null,
+      cashierId: transaction.cashierId || null
+    };
     this.transactions.set(id, newTransaction);
     return newTransaction;
   }
@@ -266,7 +294,14 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(insertUser: InsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(insertUser).returning();
+    const userData = {
+      ...insertUser,
+      role: "user",
+      createdAt: new Date(),
+      email: insertUser.email || null,
+      fullName: insertUser.fullName || null
+    };
+    const [user] = await db.insert(users).values(userData).returning();
     return user;
   }
 
@@ -281,7 +316,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const [newProduct] = await db.insert(products).values(product).returning();
+    const productData = {
+      ...product,
+      inventory: product.inventory || 0,
+      imageUrl: product.imageUrl || null
+    };
+    const [newProduct] = await db.insert(products).values(productData).returning();
     return newProduct;
   }
 
@@ -346,7 +386,14 @@ export class DatabaseStorage implements IStorage {
       return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1)) as Promise<CartItem>;
     }
 
-    const [newItem] = await db.insert(cartItems).values(item).returning();
+    // Prepare the item with appropriate defaults
+    const cartItemData = {
+      ...item,
+      transactionId: item.transactionId || null,
+      quantity: item.quantity || 1
+    };
+    
+    const [newItem] = await db.insert(cartItems).values(cartItemData).returning();
     return newItem;
   }
 
@@ -382,7 +429,15 @@ export class DatabaseStorage implements IStorage {
 
   // Transaction methods
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
-    const [newTransaction] = await db.insert(transactions).values(transaction).returning();
+    const transactionData = {
+      ...transaction,
+      status: transaction.status || null,
+      completed: transaction.completed || false,
+      discount: transaction.discount || null,
+      discountType: transaction.discountType || null,
+      cashierId: transaction.cashierId || null
+    };
+    const [newTransaction] = await db.insert(transactions).values(transactionData).returning();
     return newTransaction;
   }
 
