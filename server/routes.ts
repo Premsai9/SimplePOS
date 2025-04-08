@@ -421,6 +421,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       receiptFooter 
     } = req.body;
     
+    console.log("Received settings update:", { 
+      currency, 
+      taxRate, 
+      storeName, 
+      storeAddress, 
+      storePhone, 
+      storeEmail, 
+      receiptFooter 
+    });
+    
     try {
       // Validate the settings
       if (currency && typeof currency !== 'string') {
@@ -466,6 +476,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (!user) {
         return res.status(404).json({ message: "User not found" });
       }
+      
+      console.log("Updated user settings:", {
+        currency: user.currency,
+        taxRate: user.taxRate,
+        storeName: user.storeName,
+        storeAddress: user.storeAddress,
+        storePhone: user.storePhone,
+        storeEmail: user.storeEmail,
+        receiptFooter: user.receiptFooter
+      });
       
       // Return all settings-related fields
       res.json({
