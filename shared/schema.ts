@@ -28,6 +28,7 @@ export const products = pgTable("products", {
   category: text("category").notNull(),
   inventory: integer("inventory").notNull().default(0),
   imageUrl: text("image_url"),
+  userId: integer("user_id").references(() => users.id),
 });
 
 export const insertProductSchema = createInsertSchema(products).pick({
@@ -36,6 +37,7 @@ export const insertProductSchema = createInsertSchema(products).pick({
   category: true,
   inventory: true,
   imageUrl: true,
+  userId: true,
 });
 
 // Cart items for current transaction
@@ -64,7 +66,8 @@ export const transactions = pgTable("transactions", {
   discount: doublePrecision("discount"),
   discountType: text("discount_type"),
   paymentMethod: text("payment_method").notNull(),
-  cashierId: integer("cashier_id"),
+  cashierId: integer("cashier_id").references(() => users.id),
+  userId: integer("user_id").references(() => users.id),
   completed: boolean("completed").notNull().default(false),
   status: text("status").default("active"),
 });
@@ -77,6 +80,7 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
   discountType: true,
   paymentMethod: true,
   cashierId: true,
+  userId: true,
   completed: true,
   status: true,
 });
@@ -84,11 +88,17 @@ export const insertTransactionSchema = createInsertSchema(transactions).pick({
 // Categories
 export const categories = pgTable("categories", {
   id: serial("id").primaryKey(),
-  name: text("name").notNull().unique(),
+  name: text("name").notNull(),
+  userId: integer("user_id").references(() => users.id),
+  
+  // Composite unique constraint on name and userId
+  // This allows different users to have categories with the same name
+  // but prevents a single user from having duplicate category names
 });
 
 export const insertCategorySchema = createInsertSchema(categories).pick({
   name: true,
+  userId: true,
 });
 
 // Type exports

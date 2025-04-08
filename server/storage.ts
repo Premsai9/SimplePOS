@@ -13,12 +13,12 @@ export interface IStorage {
   createUser(user: InsertUser): Promise<User>;
 
   // Product methods
-  getAllProducts(): Promise<Product[]>;
-  getProductById(id: number): Promise<Product | undefined>;
+  getAllProducts(userId?: number): Promise<Product[]>;
+  getProductById(id: number, userId?: number): Promise<Product | undefined>;
   createProduct(product: InsertProduct): Promise<Product>;
-  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
-  deleteProduct(id: number): Promise<boolean>;
-  getProductsByCategory(category: string): Promise<Product[]>;
+  updateProduct(id: number, product: Partial<InsertProduct>, userId?: number): Promise<Product | undefined>;
+  deleteProduct(id: number, userId?: number): Promise<boolean>;
+  getProductsByCategory(category: string, userId?: number): Promise<Product[]>;
 
   // Cart methods
   getCartItems(transactionId?: number): Promise<CartItem[]>;
@@ -29,12 +29,12 @@ export interface IStorage {
 
   // Transaction methods
   createTransaction(transaction: InsertTransaction): Promise<Transaction>;
-  getTransaction(id: number): Promise<Transaction | undefined>;
-  getAllTransactions(): Promise<Transaction[]>;
+  getTransaction(id: number, userId?: number): Promise<Transaction | undefined>;
+  getAllTransactions(userId?: number): Promise<Transaction[]>;
   completeTransaction(id: number, paymentMethod: string): Promise<Transaction | undefined>;
 
   // Category methods
-  getAllCategories(): Promise<Category[]>;
+  getAllCategories(userId?: number): Promise<Category[]>;
   createCategory(category: InsertCategory): Promise<Category>;
 }
 
@@ -279,7 +279,7 @@ export class MemStorage implements IStorage {
 }
 
 import { db } from './db';
-import { eq, and, isNull, desc } from 'drizzle-orm';
+import { eq, and, isNull, desc, or } from 'drizzle-orm';
 
 export class DatabaseStorage implements IStorage {
   // User methods
@@ -306,26 +306,45 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Product methods
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProducts(userId?: number): Promise<Product[]> {
+    if (userId) {
+      return db.select().from(products).where(eq(products.userId, userId));
+    }
     return db.select().from(products);
   }
 
-  async getProductById(id: number): Promise<Product | undefined> {
+  async getProductById(id: number, userId?: number): Promise<Product | undefined> {
+    if (userId) {
+      const [product] = await db.select().from(products).where(
+        and(eq(products.id, id), eq(products.userId, userId))
+      );
+      return product;
+    }
     const [product] = await db.select().from(products).where(eq(products.id, id));
     return product;
   }
 
   async createProduct(product: InsertProduct): Promise<Product> {
-    const productData = {
+    // Explicitly type the object to match the target schema
+    const productData: typeof products.$inferInsert = {
       ...product,
       inventory: product.inventory || 0,
-      imageUrl: product.imageUrl || null
+      imageUrl: product.imageUrl || null,
+      userId: product.userId || null
     };
     const [newProduct] = await db.insert(products).values(productData).returning();
     return newProduct;
   }
 
-  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+  async updateProduct(id: number, product: Partial<InsertProduct>, userId?: number): Promise<Product | undefined> {
+    if (userId) {
+      const [updatedProduct] = await db
+        .update(products)
+        .set(product)
+        .where(and(eq(products.id, id), eq(products.userId, userId)))
+        .returning();
+      return updatedProduct;
+    }
     const [updatedProduct] = await db
       .update(products)
       .set(product)
@@ -334,14 +353,27 @@ export class DatabaseStorage implements IStorage {
     return updatedProduct;
   }
 
-  async deleteProduct(id: number): Promise<boolean> {
-    const result = await db.delete(products).where(eq(products.id, id));
+  async deleteProduct(id: number, userId?: number): Promise<boolean> {
+    let result;
+    if (userId) {
+      result = await db.delete(products).where(
+        and(eq(products.id, id), eq(products.userId, userId))
+      );
+    } else {
+      result = await db.delete(products).where(eq(products.id, id));
+    }
     return !!result;
   }
 
-  async getProductsByCategory(category: string): Promise<Product[]> {
+  async getProductsByCategory(category: string, userId?: number): Promise<Product[]> {
     if (category === "All") {
-      return this.getAllProducts();
+      return this.getAllProducts(userId);
+    }
+    
+    if (userId) {
+      return db.select().from(products).where(
+        and(eq(products.category, category), eq(products.userId, userId))
+      );
     }
     return db.select().from(products).where(eq(products.category, category));
   }
@@ -429,19 +461,27 @@ export class DatabaseStorage implements IStorage {
 
   // Transaction methods
   async createTransaction(transaction: InsertTransaction): Promise<Transaction> {
-    const transactionData = {
+    const transactionData: typeof transactions.$inferInsert = {
       ...transaction,
       status: transaction.status || null,
       completed: transaction.completed || false,
       discount: transaction.discount || null,
       discountType: transaction.discountType || null,
-      cashierId: transaction.cashierId || null
+      cashierId: transaction.cashierId || null,
+      userId: transaction.userId || null
     };
     const [newTransaction] = await db.insert(transactions).values(transactionData).returning();
     return newTransaction;
   }
 
-  async getTransaction(id: number): Promise<Transaction | undefined> {
+  async getTransaction(id: number, userId?: number): Promise<Transaction | undefined> {
+    if (userId) {
+      const [transaction] = await db
+        .select()
+        .from(transactions)
+        .where(and(eq(transactions.id, id), eq(transactions.userId, userId)));
+      return transaction;
+    }
     const [transaction] = await db
       .select()
       .from(transactions)
@@ -449,7 +489,13 @@ export class DatabaseStorage implements IStorage {
     return transaction;
   }
 
-  async getAllTransactions(): Promise<Transaction[]> {
+  async getAllTransactions(userId?: number): Promise<Transaction[]> {
+    if (userId) {
+      return db.select()
+        .from(transactions)
+        .where(eq(transactions.userId, userId))
+        .orderBy(desc(transactions.date));
+    }
     return db.select().from(transactions).orderBy(desc(transactions.date));
   }
 
@@ -463,12 +509,22 @@ export class DatabaseStorage implements IStorage {
   }
 
   // Category methods
-  async getAllCategories(): Promise<Category[]> {
+  async getAllCategories(userId?: number): Promise<Category[]> {
+    if (userId) {
+      // Return both user's custom categories and "global" categories (where userId is null)
+      return db.select().from(categories).where(
+        or(eq(categories.userId, userId), isNull(categories.userId))
+      );
+    }
     return db.select().from(categories);
   }
 
   async createCategory(category: InsertCategory): Promise<Category> {
-    const [newCategory] = await db.insert(categories).values(category).returning();
+    const categoryData: typeof categories.$inferInsert = {
+      ...category,
+      userId: category.userId || null
+    };
+    const [newCategory] = await db.insert(categories).values(categoryData).returning();
     return newCategory;
   }
 }

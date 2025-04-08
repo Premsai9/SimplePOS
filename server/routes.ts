@@ -28,12 +28,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Products API
   apiRouter.get("/products", async (req: Request, res: Response) => {
     const category = req.query.category as string;
+    const userId = req.isAuthenticated() ? req.user.id : undefined;
     let products;
     
     if (category && category !== "All") {
-      products = await storage.getProductsByCategory(category);
+      products = await storage.getProductsByCategory(category, userId);
     } else {
-      products = await storage.getAllProducts();
+      products = await storage.getAllProducts(userId);
     }
     
     res.json(products);
@@ -45,7 +46,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Invalid product ID" });
     }
 
-    const product = await storage.getProductById(id);
+    const userId = req.isAuthenticated() ? req.user.id : undefined;
+    const product = await storage.getProductById(id, userId);
     if (!product) {
       return res.status(404).json({ message: "Product not found" });
     }
@@ -56,7 +58,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
   apiRouter.post("/products", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const productData = insertProductSchema.parse(req.body);
-      const product = await storage.createProduct(productData);
+      // Add user ID to associate product with the current user
+      // req.user will be defined because of isAuthenticated middleware
+      const product = await storage.createProduct({
+        ...productData,
+        userId: req.user!.id
+      });
       res.status(201).json(product);
     } catch (error) {
       if (error instanceof z.ZodError) {
@@ -74,10 +81,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
     try {
       const productData = insertProductSchema.partial().parse(req.body);
-      const product = await storage.updateProduct(id, productData);
+      // Pass user ID to only update products that belong to this user
+      const product = await storage.updateProduct(id, productData, req.user!.id);
       
       if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+        return res.status(404).json({ message: "Product not found or you don't have permission to edit it" });
       }
       
       res.json(product);
@@ -95,9 +103,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(400).json({ message: "Invalid product ID" });
     }
 
-    const result = await storage.deleteProduct(id);
+    // Pass user ID to only delete products that belong to this user
+    const result = await storage.deleteProduct(id, req.user!.id);
     if (!result) {
-      return res.status(404).json({ message: "Product not found" });
+      return res.status(404).json({ message: "Product not found or you don't have permission to delete it" });
     }
 
     res.status(204).end();
@@ -244,20 +253,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Transactions API
-  apiRouter.get("/transactions", async (_req: Request, res: Response) => {
-    const transactions = await storage.getAllTransactions();
+  apiRouter.get("/transactions", isAuthenticated, async (req: Request, res: Response) => {
+    const userId = req.user!.id;
+    const transactions = await storage.getAllTransactions(userId);
     res.json(transactions);
   });
 
-  apiRouter.get("/transactions/:id", async (req: Request, res: Response) => {
+  apiRouter.get("/transactions/:id", isAuthenticated, async (req: Request, res: Response) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid transaction ID" });
     }
 
-    const transaction = await storage.getTransaction(id);
+    const userId = req.user!.id;
+    const transaction = await storage.getTransaction(id, userId);
     if (!transaction) {
-      return res.status(404).json({ message: "Transaction not found" });
+      return res.status(404).json({ message: "Transaction not found or you don't have permission to view it" });
     }
 
     // Get cart items for this transaction
@@ -280,16 +291,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
   });
 
-  apiRouter.post("/transactions", async (req: Request, res: Response) => {
+  apiRouter.post("/transactions", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const transactionData = insertTransactionSchema.parse(req.body);
+      const userId = req.user!.id;
       
-      // Create the transaction with discount information if provided
+      // Create the transaction with discount information if provided and associate with user
       const transaction = await storage.createTransaction({
         ...transactionData,
         discount: req.body.discount, // Add discount amount
         discountType: req.body.discountType, // Add discount type
-        status: req.body.status || 'completed'
+        status: req.body.status || 'completed',
+        userId: userId
       });
       
       // Get current cart items
@@ -342,15 +355,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Categories API
-  apiRouter.get("/categories", async (_req: Request, res: Response) => {
-    const categories = await storage.getAllCategories();
+  apiRouter.get("/categories", async (req: Request, res: Response) => {
+    // If authenticated, get categories for this user and global categories
+    // If not authenticated, just get global categories
+    const userId = req.isAuthenticated() ? req.user!.id : undefined;
+    const categories = await storage.getAllCategories(userId);
     res.json(categories);
   });
 
   apiRouter.post("/categories", isAuthenticated, async (req: Request, res: Response) => {
     try {
       const categoryData = insertCategorySchema.parse(req.body);
-      const category = await storage.createCategory(categoryData);
+      // Associate category with the current user
+      const category = await storage.createCategory({
+        ...categoryData,
+        userId: req.user!.id
+      });
       res.status(201).json(category);
     } catch (error) {
       if (error instanceof z.ZodError) {
