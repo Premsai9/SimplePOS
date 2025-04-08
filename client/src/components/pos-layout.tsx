@@ -38,14 +38,15 @@ export default function POSLayout({ children }: POSLayoutProps) {
           </div>
           
           {/* User Menu */}
-          <div className="flex items-center space-x-4">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-4">
             <Link href="/transactions">
-              <button className="flex items-center text-slate-700 hover:text-blue-500 text-sm">
+              <button className="flex items-center text-slate-700 hover:text-blue-500 text-xs sm:text-sm">
                 <History size={16} className="mr-1" />
-                <span>Transaction History</span>
+                <span className="hidden xs:inline">Transaction History</span>
+                <span className="xs:hidden">History</span>
               </button>
             </Link>
-            <span className="text-sm text-slate-600">{formattedDateTime}</span>
+            <span className="hidden sm:inline text-xs sm:text-sm text-slate-600">{formattedDateTime}</span>
             <div className="relative">
               <button 
                 className="flex items-center space-x-1 text-slate-700 hover:text-blue-500"

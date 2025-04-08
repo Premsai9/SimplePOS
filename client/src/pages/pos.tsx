@@ -53,38 +53,42 @@ export default function POS() {
 
   return (
     <POSLayout>
-      <div className="h-full flex flex-col lg:flex-row">
-        <ProductCatalog
-          products={products}
-          categories={categories}
-          selectedCategory={selectedCategory}
-          searchQuery={searchQuery}
-          onSelectCategory={setSelectedCategory}
-          onSearch={setSearchQuery}
-          onAddToCart={(product) => {
-            addToCart(product);
-            toast({
-              title: "Item Added",
-              description: `${product.name} added to cart`,
-              className: "bg-green-500 text-white",
-            });
-          }}
-          isLoading={isLoading.products}
-        />
+      <div className="h-full flex flex-col md:flex-row">
+        <div className="w-full md:w-7/12 h-[50vh] md:h-full overflow-hidden">
+          <ProductCatalog
+            products={products}
+            categories={categories}
+            selectedCategory={selectedCategory}
+            searchQuery={searchQuery}
+            onSelectCategory={setSelectedCategory}
+            onSearch={setSearchQuery}
+            onAddToCart={(product) => {
+              addToCart(product);
+              toast({
+                title: "Item Added",
+                description: `${product.name} added to cart`,
+                className: "bg-green-500 text-white",
+              });
+            }}
+            isLoading={isLoading.products}
+          />
+        </div>
         
-        <ShoppingCart
-          items={cartItems}
-          onUpdateQuantity={updateCartItem}
-          onRemoveItem={removeCartItem}
-          onClearCart={clearCart}
-          subtotal={cartSubtotal}
-          tax={cartTax}
-          total={cartTotal}
-          onCheckout={() => setPaymentModalOpen(true)}
-          isLoading={isLoading.cart}
-          onDiscount={() => setDiscountModalOpen(true)}
-          discountAmount={discountAmount}
-        />
+        <div className="w-full md:w-5/12 h-[50vh] md:h-full overflow-hidden">
+          <ShoppingCart
+            items={cartItems}
+            onUpdateQuantity={updateCartItem}
+            onRemoveItem={removeCartItem}
+            onClearCart={clearCart}
+            subtotal={cartSubtotal}
+            tax={cartTax}
+            total={cartTotal}
+            onCheckout={() => setPaymentModalOpen(true)}
+            isLoading={isLoading.cart}
+            onDiscount={() => setDiscountModalOpen(true)}
+            discountAmount={discountAmount}
+          />
+        </div>
       </div>
 
       {isPaymentModalOpen && (
