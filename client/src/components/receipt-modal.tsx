@@ -26,14 +26,15 @@ export default function ReceiptModal({
     queryKey: ['/api/settings'],
   });
   
-  // Use settings or default values
-  const currency = settings?.currency || 'USD';
-  const taxRate = settings?.taxRate || 7.5;
-  const storeName = settings?.storeName || 'SimplePOS';
-  const storeAddress = settings?.storeAddress || '123 Main Street';
-  const storePhone = settings?.storePhone || '(555) 123-4567';
+  // Use settings without default values to ensure we show what the user has set
+  const currency = settings?.currency || '';
+  const taxRate = settings?.taxRate || 0;
+  // Display actual user-configured store details with no defaults
+  const storeName = settings?.storeName || '';
+  const storeAddress = settings?.storeAddress || '';
+  const storePhone = settings?.storePhone || '';
   const storeEmail = settings?.storeEmail || '';
-  const receiptFooter = settings?.receiptFooter || 'Thank you for your purchase!';
+  const receiptFooter = settings?.receiptFooter || '';
 
   const handlePrint = () => {
     window.print();
@@ -62,8 +63,12 @@ export default function ReceiptModal({
             style={{ maxWidth: "300px", margin: "0 auto" }}
           >
             <div className="text-center mb-4">
-              <h3 className="text-lg font-bold">{storeName}</h3>
-              <p className="text-sm text-slate-600">{storeAddress}</p>
+              {storeName ? (
+                <h3 className="text-lg font-bold">{storeName}</h3>
+              ) : (
+                <h3 className="text-lg font-bold">My Store</h3>
+              )}
+              {storeAddress && <p className="text-sm text-slate-600">{storeAddress}</p>}
               {storePhone && <p className="text-sm text-slate-600">Tel: {storePhone}</p>}
               {storeEmail && <p className="text-sm text-slate-600">Email: {storeEmail}</p>}
             </div>
@@ -97,8 +102,8 @@ export default function ReceiptModal({
                 <div key={item.id} className="flex justify-between text-sm">
                   <span className="w-5/12">{item.product?.name}</span>
                   <span className="w-2/12 text-center">{item.quantity}</span>
-                  <span className="w-2/12 text-right">{currency} {item.price.toFixed(2)}</span>
-                  <span className="w-3/12 text-right">{currency} {(item.price * item.quantity).toFixed(2)}</span>
+                  <span className="w-2/12 text-right">{currency || '$'} {item.price.toFixed(2)}</span>
+                  <span className="w-3/12 text-right">{currency || '$'} {(item.price * item.quantity).toFixed(2)}</span>
                 </div>
               ))}
             </div>
@@ -106,32 +111,36 @@ export default function ReceiptModal({
             <div className="border-t border-slate-200 pt-2 mb-4">
               <div className="flex justify-between text-sm">
                 <span>Subtotal:</span>
-                <span>{currency} {transaction.subtotal.toFixed(2)}</span>
+                <span>{currency || '$'} {transaction.subtotal.toFixed(2)}</span>
               </div>
               
               {transaction.discount && transaction.discount > 0 && (
                 <div className="flex justify-between text-sm text-red-600">
                   <span>Discount {transaction.discountType === 'percentage' ? `(${(transaction.discount / transaction.subtotal * 100).toFixed(0)}%)` : ''}:</span>
-                  <span>-{currency} {transaction.discount.toFixed(2)}</span>
+                  <span>-{currency || '$'} {transaction.discount.toFixed(2)}</span>
                 </div>
               )}
               
               <div className="flex justify-between text-sm">
-                <span>Tax ({taxRate}%):</span>
-                <span>{currency} {transaction.tax.toFixed(2)}</span>
+                <span>Tax ({taxRate || '0'}%):</span>
+                <span>{currency || '$'} {transaction.tax.toFixed(2)}</span>
               </div>
               <div className="flex justify-between font-bold mt-1">
                 <span>Total:</span>
-                <span>{currency} {transaction.total.toFixed(2)}</span>
+                <span>{currency || '$'} {transaction.total.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm mt-2">
                 <span>Payment ({transaction.paymentMethod}):</span>
-                <span>{currency} {transaction.total.toFixed(2)}</span>
+                <span>{currency || '$'} {transaction.total.toFixed(2)}</span>
               </div>
             </div>
             
             <div className="text-center text-sm">
-              <p>{receiptFooter}</p>
+              {receiptFooter ? (
+                <p>{receiptFooter}</p>
+              ) : (
+                <p>Thank you for shopping with us!</p>
+              )}
               <p>Please come again.</p>
               <div className="mt-2">
                 <div className="text-center">

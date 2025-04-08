@@ -396,15 +396,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       return res.status(404).json({ message: "User not found" });
     }
     
-    // Return all settings-related fields
+    // Return all settings-related fields without default values
+    // This allows the frontend to know if a value is actually set
     res.json({
-      currency: user.currency || "USD",
-      taxRate: user.taxRate || 7.5,
+      currency: user.currency || "",
+      taxRate: user.taxRate || 0,
       storeName: user.storeName || "",
       storeAddress: user.storeAddress || "",
       storePhone: user.storePhone || "",
       storeEmail: user.storeEmail || "",
-      receiptFooter: user.receiptFooter || "Thank you for your business!"
+      receiptFooter: user.receiptFooter || ""
     });
   });
   
