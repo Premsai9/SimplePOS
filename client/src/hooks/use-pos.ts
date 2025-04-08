@@ -40,8 +40,11 @@ export function usePOS() {
     queryKey: ["/api/categories"],
   });
 
-  const { data: cartItems = [], isLoading: isCartLoading } = useQuery<CartItem[]>({
+  const { data: cartItems = [], isLoading: isCartLoading, refetch: refetchCart } = useQuery<CartItem[]>({
     queryKey: ["/api/cart"],
+    staleTime: 0, // Always fetch fresh data
+    refetchOnMount: true,
+    refetchOnWindowFocus: true,
   });
 
   // Calculations
@@ -69,8 +72,10 @@ export function usePOS() {
         price: product.price,
       });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Manually trigger a refetch to ensure the UI updates
+      refetchCart();
     },
     onError: (error: Error) => {
       setIsLoading(prev => ({
@@ -85,8 +90,10 @@ export function usePOS() {
     mutationFn: ({ id, quantity }: { id: number; quantity: number }) => {
       return apiRequest("PUT", `/api/cart/${id}`, { quantity });
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Manually trigger a refetch to ensure the UI updates
+      refetchCart();
     },
     onError: (error: Error) => {
       setIsLoading(prev => ({
@@ -101,8 +108,10 @@ export function usePOS() {
     mutationFn: (id: number) => {
       return apiRequest("DELETE", `/api/cart/${id}`);
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Manually trigger a refetch to ensure the UI updates
+      refetchCart();
     },
     onError: (error: Error) => {
       setIsLoading(prev => ({
@@ -117,8 +126,10 @@ export function usePOS() {
     mutationFn: () => {
       return apiRequest("DELETE", "/api/cart");
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Manually trigger a refetch to ensure the UI updates
+      refetchCart();
     },
     onError: (error: Error) => {
       setIsLoading(prev => ({
@@ -154,7 +165,9 @@ export function usePOS() {
       setReceiptModalOpen(true);
       
       // Clear cart after successful transaction
-      queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      await queryClient.invalidateQueries({ queryKey: ["/api/cart"] });
+      // Manually trigger a refetch to ensure the UI updates
+      refetchCart();
     },
     onError: (error: Error) => {
       setIsLoading(prev => ({
