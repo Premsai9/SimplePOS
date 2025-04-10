@@ -66,7 +66,7 @@ export default function ProductCatalog({
               <span className="text-xs">Add Product</span>
             </Button>
           </div>
-          <div className="flex flex-1 space-x-2">
+          <div className="flex flex-col sm:flex-row w-full sm:w-auto gap-2">
             {/* Category Filter Dropdown - Mobile only */}
             <div className="sm:hidden w-full">
               <DropdownMenu open={dropdownOpen} onOpenChange={setDropdownOpen}>
@@ -76,7 +76,7 @@ export default function ProductCatalog({
                     <ChevronDown className="ml-1 h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
+                <DropdownMenuContent className="w-[calc(100vw-2rem)] sm:w-auto mx-2">
                   {categories.map((category) => (
                     <DropdownMenuItem 
                       key={category.id} 
@@ -93,13 +93,13 @@ export default function ProductCatalog({
             </div>
             
             {/* Search Input */}
-            <div className="relative flex-1">
+            <div className="relative w-full">
               <Input
                 type="text"
                 placeholder="Search products..."
                 value={searchQuery}
                 onChange={(e) => onSearch(e.target.value)}
-                className="w-full px-3 py-1.5 h-9"
+                className="w-full px-3 py-1.5 h-9 pr-9"
               />
               <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-slate-400">
                 <Search size={16} />
@@ -140,83 +140,85 @@ export default function ProductCatalog({
       </div>
 
       {/* Product Grid */}
-      <div className="flex-1 p-2 sm:p-4 overflow-y-auto grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3">
-        {isLoading ? (
-          // Loading state
-          Array.from({ length: 8 }).map((_, index) => (
-            <div key={index} className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden">
-              <Skeleton className="h-24 sm:h-32 w-full" />
-              <div className="p-2 sm:p-3">
-                <Skeleton className="h-3 sm:h-4 w-3/4 mb-2" />
-                <div className="flex justify-between items-center">
-                  <Skeleton className="h-2 sm:h-3 w-16" />
-                  <Skeleton className="h-2 sm:h-3 w-12" />
-                </div>
-              </div>
-            </div>
-          ))
-        ) : products.length === 0 ? (
-          // Empty state
-          <div className="col-span-full flex justify-center items-center h-40 text-slate-400">
-            No products found
-          </div>
-        ) : (
-          // Product cards
-          products.map((product) => (
-            <div
-              key={product.id}
-              className="bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden relative"
-            >
-              {/* Edit button overlay */}
-              <div className="absolute top-2 right-2 z-10">
-                <Button
-                  variant="outline"
-                  size="icon"
-                  className="h-6 w-6 bg-white bg-opacity-80 hover:bg-white hover:bg-opacity-100 border-slate-200"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setSelectedProduct(product);
-                    setIsEditProductModalOpen(true);
-                  }}
-                >
-                  <Edit className="h-3 w-3 text-slate-600" />
-                </Button>
-              </div>
-              
-              {/* Product content */}
-              <div 
-                className="cursor-pointer active:bg-slate-50"
-                onClick={() => onAddToCart(product)}
-              >
-                <div className="h-24 sm:h-32 bg-slate-100 flex items-center justify-center">
-                  {product.imageUrl ? (
-                    <img 
-                      src={product.imageUrl} 
-                      alt={product.name} 
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <div className="h-full w-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs sm:text-sm">
-                      No Image
-                    </div>
-                  )}
-                </div>
+      <div className="flex-1 p-2 sm:p-4 overflow-y-auto">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2 sm:gap-3 auto-rows-fr">
+          {isLoading ? (
+            // Loading state
+            Array.from({ length: 8 }).map((_, index) => (
+              <div key={index} className="bg-white border border-slate-200 rounded-lg shadow-sm overflow-hidden h-full">
+                <Skeleton className="h-24 sm:h-32 w-full" />
                 <div className="p-2 sm:p-3">
-                  <h3 className="text-xs sm:text-sm font-medium text-slate-800 truncate">{product.name}</h3>
-                  <div className="flex justify-between items-center mt-1">
-                    <span className="text-xs sm:text-sm font-bold text-slate-700">
-                      {new Intl.NumberFormat('en-US', { 
-                        style: 'currency', 
-                        currency: settings?.currency || 'USD'
-                      }).format(product.price)}
-                    </span>
-                    <span className="text-xs text-slate-500">Stock: {product.inventory}</span>
+                  <Skeleton className="h-3 sm:h-4 w-3/4 mb-2" />
+                  <div className="flex justify-between items-center">
+                    <Skeleton className="h-2 sm:h-3 w-16" />
+                    <Skeleton className="h-2 sm:h-3 w-12" />
                   </div>
                 </div>
               </div>
+            ))
+          ) : products.length === 0 ? (
+            // Empty state
+            <div className="col-span-full flex justify-center items-center h-40 text-slate-400">
+              No products found
             </div>
-          ))
-        )}
+          ) : (
+            // Product cards
+            products.map((product) => (
+              <div
+                key={product.id}
+                className="bg-white border border-slate-200 rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden relative h-full flex flex-col"
+              >
+                {/* Edit button overlay */}
+                <div className="absolute top-2 right-2 z-10">
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-6 w-6 bg-white bg-opacity-80 hover:bg-white hover:bg-opacity-100 border-slate-200"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSelectedProduct(product);
+                      setIsEditProductModalOpen(true);
+                    }}
+                  >
+                    <Edit className="h-3 w-3 text-slate-600" />
+                  </Button>
+                </div>
+                
+                {/* Product content */}
+                <div 
+                  className="cursor-pointer active:bg-slate-50 flex flex-col h-full"
+                  onClick={() => onAddToCart(product)}
+                >
+                  <div className="aspect-[4/3] w-full bg-slate-100 flex items-center justify-center">
+                    {product.imageUrl ? (
+                      <img 
+                        src={product.imageUrl} 
+                        alt={product.name} 
+                        className="h-full w-full object-cover"
+                      />
+                    ) : (
+                      <div className="h-full w-full bg-slate-200 flex items-center justify-center text-slate-400 text-xs sm:text-sm">
+                        No Image
+                      </div>
+                    )}
+                  </div>
+                  <div className="p-2 sm:p-3 flex flex-col flex-grow">
+                    <h3 className="text-xs sm:text-sm font-medium text-slate-800 mb-auto line-clamp-2">{product.name}</h3>
+                    <div className="flex justify-between items-center gap-1 mt-1.5">
+                      <span className="text-xs sm:text-sm font-bold text-slate-700 truncate">
+                        {new Intl.NumberFormat('en-US', { 
+                          style: 'currency', 
+                          currency: settings?.currency || 'USD'
+                        }).format(product.price)}
+                      </span>
+                      <span className="text-xs text-slate-500 whitespace-nowrap">Stock: {product.inventory}</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
+        </div>
       </div>
       
       {/* Add Product Modal */}

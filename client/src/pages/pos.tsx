@@ -54,7 +54,7 @@ export default function POS() {
   return (
     <POSLayout>
       <div className="h-full flex flex-col md:flex-row">
-        <div className="w-full md:w-7/12 h-[50vh] md:h-full overflow-hidden">
+        <div className="w-full md:w-7/12 h-[60vh] md:h-full overflow-hidden flex flex-col">
           <ProductCatalog
             products={products}
             categories={categories}
@@ -67,14 +67,15 @@ export default function POS() {
               toast({
                 title: "Item Added",
                 description: `${product.name} added to cart`,
-                className: "bg-green-500 text-white",
+                className: "bg-green-500 text-white border-0",
+                duration: 1500,
               });
             }}
             isLoading={isLoading.products}
           />
         </div>
         
-        <div className="w-full md:w-5/12 h-[50vh] md:h-full overflow-hidden">
+        <div className="w-full md:w-5/12 h-[40vh] md:h-full overflow-hidden border-t md:border-t-0 md:border-l border-slate-200">
           <ShoppingCart
             items={cartItems}
             onUpdateQuantity={updateCartItem}

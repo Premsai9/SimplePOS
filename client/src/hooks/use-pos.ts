@@ -33,22 +33,38 @@ export function usePOS() {
 
   // Queries
   const { data: products = [], isLoading: isProductsLoading } = useQuery<Product[]>({
-    queryKey: ["/api/products", selectedCategory],
+    queryKey: ["/api/products", selectedCategory, searchQuery],
     queryFn: async () => {
-      const url = selectedCategory !== "All" 
-        ? `/api/products?category=${encodeURIComponent(selectedCategory)}`
-        : "/api/products";
+      // Always fetch all products when searching
+      const url = searchQuery 
+        ? "/api/products"
+        : selectedCategory !== "All"
+          ? `/api/products?category=${encodeURIComponent(selectedCategory)}`
+          : "/api/products";
       const response = await fetch(url);
       if (!response.ok) throw new Error("Failed to fetch products");
       return response.json();
     },
     select: (data: Product[]) => {
-      if (!searchQuery) return data;
-      const query = searchQuery.toLowerCase();
-      return data.filter(product => 
-        product.name.toLowerCase().includes(query) || 
-        product.category.toLowerCase().includes(query)
-      );
+      let filteredProducts = data;
+      
+      // Apply search filter if there's a search query
+      if (searchQuery) {
+        const query = searchQuery.toLowerCase();
+        filteredProducts = data.filter(product => 
+          product.name.toLowerCase().includes(query) || 
+          product.category.toLowerCase().includes(query)
+        );
+      }
+      
+      // Apply category filter if there's a search query and specific category
+      if (searchQuery && selectedCategory !== "All") {
+        filteredProducts = filteredProducts.filter(product => 
+          product.category === selectedCategory
+        );
+      }
+      
+      return filteredProducts;
     }
   });
 

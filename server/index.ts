@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -62,11 +63,7 @@ app.use((req, res, next) => {
   const alternativePorts = [3000, 8000, 8080, 4000];
   
   const startServer = (portToUse: number, portIndex = 0) => {
-    server.listen({
-      port: portToUse,
-      host: "0.0.0.0",
-      reusePort: true,
-    }, () => {
+    server.listen(portToUse, () => {
       log(`serving on port ${portToUse}`);
     }).on('error', (err: any) => {
       if (err.code === 'EADDRINUSE' && portIndex < alternativePorts.length) {
