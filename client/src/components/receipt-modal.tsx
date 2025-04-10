@@ -35,9 +35,62 @@ export default function ReceiptModal({
   const storePhone = settings?.storePhone || '';
   const storeEmail = settings?.storeEmail || '';
   const receiptFooter = settings?.receiptFooter || '';
+  const showLogo = settings?.showLogo ?? true;
+  const logoUrl = settings?.logoUrl || '';
+
+  console.log('Receipt Settings:', { showLogo, logoUrl, settings }); // Debug log
+
+  // Function to get local settings as backup
+  const getLocalSettings = () => {
+    try {
+      const savedSettings = localStorage.getItem("pos-settings");
+      if (savedSettings) {
+        return JSON.parse(savedSettings);
+      }
+    } catch (error) {
+      console.error('Error reading local settings:', error);
+    }
+    return null;
+  };
+
+  // Get logo URL from either server settings or local storage
+  const localSettings = getLocalSettings();
+  const effectiveLogoUrl = logoUrl || (localSettings?.logoUrl || '');
+  const shouldShowLogo = showLogo && effectiveLogoUrl;
+
+  console.log('Logo Display:', { shouldShowLogo, effectiveLogoUrl, localSettings }); // Debug log
 
   const handlePrint = () => {
-    window.print();
+    if (receiptRef.current) {
+      const printContent = receiptRef.current.innerHTML;
+      const originalContent = document.body.innerHTML;
+
+      // Create a new window with only receipt content
+      document.body.innerHTML = `
+        <style>
+          @media print {
+            body { 
+              padding: 0;
+              margin: 0;
+            }
+            * {
+              box-sizing: border-box;
+            }
+          }
+        </style>
+        <div style="width: 300px; margin: 0 auto;">
+          ${printContent}
+        </div>
+      `;
+
+      window.print();
+      
+      // Restore the original content
+      document.body.innerHTML = originalContent;
+      
+      // Re-render the React app to restore event listeners
+      window.location.reload();
+    }
   };
 
   const handleEmailReceipt = () => {
@@ -63,6 +116,26 @@ export default function ReceiptModal({
             style={{ maxWidth: "300px", margin: "0 auto" }}
           >
             <div className="text-center mb-4">
+              {shouldShowLogo && (
+                <div className="mb-3">
+                  <img 
+                    src={effectiveLogoUrl} 
+                    alt="Store Logo" 
+                    className="h-16 mx-auto object-contain"
+                    style={{ 
+                      maxWidth: '200px', 
+                      display: 'block',
+                      margin: '0 auto'
+                    }}
+                    onError={(e) => {
+                      console.error('Logo failed to load:', effectiveLogoUrl);
+                      const target = e.target as HTMLImageElement;
+                      target.style.display = 'none';
+                    }}
+                    onLoad={() => console.log('Logo loaded successfully:', effectiveLogoUrl)}
+                  />
+                </div>
+              )}
               {storeName ? (
                 <h3 className="text-lg font-bold">{storeName}</h3>
               ) : (

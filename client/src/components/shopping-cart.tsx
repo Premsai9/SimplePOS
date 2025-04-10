@@ -200,24 +200,17 @@ export default function ShoppingCart({
       </div>
 
       {/* Cart Actions */}
-      <div className="p-2 sm:p-4 flex flex-wrap sm:flex-nowrap gap-2 border-t border-slate-200">
+      <div className="p-2 sm:p-4 pb-4 sm:pb-6 flex flex-wrap sm:flex-nowrap gap-2 border-t border-slate-200">
         <Button 
           variant="secondary" 
-          className="flex-1 h-8 sm:h-auto text-xs sm:text-sm px-2 sm:px-4"
-          disabled={items.length === 0}
-        >
-          Hold
-        </Button>
-        <Button 
-          variant="secondary" 
-          className="flex-1 h-8 sm:h-auto text-xs sm:text-sm px-2 sm:px-4"
+          className="flex-1 h-10 sm:h-11 text-xs sm:text-sm px-2 sm:px-4 shadow-sm"
           onClick={onDiscount}
           disabled={items.length === 0}
         >
           {discountAmount > 0 ? 'Edit Discount' : 'Discount'}
         </Button>
         <Button 
-          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-8 sm:h-auto text-xs sm:text-sm px-2 sm:px-4" 
+          className="flex-1 bg-blue-500 hover:bg-blue-600 text-white h-10 sm:h-11 text-xs sm:text-sm px-2 sm:px-4 shadow-sm" 
           onClick={onCheckout}
           disabled={items.length === 0}
         >

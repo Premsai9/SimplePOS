@@ -32,7 +32,7 @@ export interface IStorage {
   // Cart methods
   getCartItems(transactionId?: number): Promise<CartItem[]>;
   addToCart(item: InsertCartItem): Promise<CartItem>;
-  updateCartItem(id: number, quantity: number): Promise<CartItem | undefined>;
+  updateCartItem(id: number, quantity: number, transactionId?: number): Promise<CartItem | undefined>;
   removeCartItem(id: number): Promise<boolean>;
   clearCart(transactionId?: number): Promise<boolean>;
 
@@ -161,11 +161,11 @@ export class MemStorage implements IStorage {
   }
 
   // Product methods
-  async getAllProducts(): Promise<Product[]> {
+  async getAllProducts(userId?: number): Promise<Product[]> {
     return Array.from(this.products.values());
   }
 
-  async getProductById(id: number): Promise<Product | undefined> {
+  async getProductById(id: number, userId?: number): Promise<Product | undefined> {
     return this.products.get(id);
   }
 
@@ -182,7 +182,7 @@ export class MemStorage implements IStorage {
     return newProduct;
   }
 
-  async updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined> {
+  async updateProduct(id: number, product: Partial<InsertProduct>, userId?: number): Promise<Product | undefined> {
     const existingProduct = this.products.get(id);
     if (!existingProduct) return undefined;
 
@@ -191,13 +191,13 @@ export class MemStorage implements IStorage {
     return updatedProduct;
   }
 
-  async deleteProduct(id: number): Promise<boolean> {
+  async deleteProduct(id: number, userId?: number): Promise<boolean> {
     return this.products.delete(id);
   }
 
-  async getProductsByCategory(category: string): Promise<Product[]> {
+  async getProductsByCategory(category: string, userId?: number): Promise<Product[]> {
     if (category === "All") {
-      return this.getAllProducts();
+      return this.getAllProducts(userId);
     }
     return Array.from(this.products.values()).filter(
       (product) => product.category === category
@@ -207,10 +207,10 @@ export class MemStorage implements IStorage {
   // Cart methods
   async getCartItems(transactionId?: number): Promise<CartItem[]> {
     const items = Array.from(this.cartItems.values());
-    if (transactionId) {
+    if (transactionId !== undefined) {
       return items.filter(item => item.transactionId === transactionId);
     }
-    return items.filter(item => item.transactionId === undefined || item.transactionId === null);
+    return items.filter(item => item.transactionId === null || item.transactionId === undefined);
   }
 
   async addToCart(item: InsertCartItem): Promise<CartItem> {
@@ -222,7 +222,8 @@ export class MemStorage implements IStorage {
 
     if (existingItem) {
       // Update quantity instead of adding new item
-      return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1)) as Promise<CartItem>;
+      const transactionId = existingItem.transactionId !== null ? existingItem.transactionId : undefined;
+      return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1), transactionId) as Promise<CartItem>;
     }
 
     const id = this.cartItemId++;
@@ -237,7 +238,7 @@ export class MemStorage implements IStorage {
     return newItem;
   }
 
-  async updateCartItem(id: number, quantity: number): Promise<CartItem | undefined> {
+  async updateCartItem(id: number, quantity: number, transactionId?: number): Promise<CartItem | undefined> {
     const item = this.cartItems.get(id);
     if (!item) return undefined;
 
@@ -246,7 +247,11 @@ export class MemStorage implements IStorage {
       return undefined;
     }
 
-    const updatedItem = { ...item, quantity };
+    const updatedItem = { 
+      ...item, 
+      quantity,
+      transactionId: transactionId !== undefined ? transactionId : item.transactionId 
+    };
     this.cartItems.set(id, updatedItem);
     return updatedItem;
   }
@@ -294,11 +299,11 @@ export class MemStorage implements IStorage {
     return newTransaction;
   }
 
-  async getTransaction(id: number): Promise<Transaction | undefined> {
+  async getTransaction(id: number, userId?: number): Promise<Transaction | undefined> {
     return this.transactions.get(id);
   }
 
-  async getAllTransactions(): Promise<Transaction[]> {
+  async getAllTransactions(userId?: number): Promise<Transaction[]> {
     return Array.from(this.transactions.values());
   }
 
@@ -312,7 +317,7 @@ export class MemStorage implements IStorage {
   }
 
   // Category methods
-  async getAllCategories(): Promise<Category[]> {
+  async getAllCategories(userId?: number): Promise<Category[]> {
     return Array.from(this.categories.values());
   }
 
@@ -490,7 +495,7 @@ export class DatabaseStorage implements IStorage {
   async getCartItems(transactionId?: number, userId?: number): Promise<CartItem[]> {
     const conditions = [];
     
-    if (transactionId) {
+    if (transactionId !== undefined) {
       conditions.push(eq(cartItems.transactionId, transactionId));
     } else {
       conditions.push(isNull(cartItems.transactionId));
@@ -527,7 +532,8 @@ export class DatabaseStorage implements IStorage {
 
     if (existingItem) {
       // Update quantity instead of adding new item
-      return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1)) as Promise<CartItem>;
+      const transactionId = existingItem.transactionId !== null ? existingItem.transactionId : undefined;
+      return this.updateCartItem(existingItem.id, existingItem.quantity + (item.quantity || 1), transactionId) as Promise<CartItem>;
     }
 
     // Prepare the item with appropriate defaults
@@ -542,15 +548,20 @@ export class DatabaseStorage implements IStorage {
     return newItem;
   }
 
-  async updateCartItem(id: number, quantity: number): Promise<CartItem | undefined> {
+  async updateCartItem(id: number, quantity: number, transactionId?: number): Promise<CartItem | undefined> {
     if (quantity <= 0) {
       await this.removeCartItem(id);
       return undefined;
     }
 
+    const updateData: Partial<typeof cartItems.$inferInsert> = { quantity };
+    if (transactionId !== undefined) {
+      updateData.transactionId = transactionId;
+    }
+
     const [updatedItem] = await db
       .update(cartItems)
-      .set({ quantity })
+      .set(updateData)
       .where(eq(cartItems.id, id))
       .returning();
     return updatedItem;
@@ -561,7 +572,7 @@ export class DatabaseStorage implements IStorage {
     return !!result;
   }
 
-  async clearCart(transactionId?: number, userId?: number): Promise<boolean> {
+  async clearCart(transactionId?: number): Promise<boolean> {
     const conditions = [];
     
     if (transactionId) {
@@ -570,11 +581,6 @@ export class DatabaseStorage implements IStorage {
     } else {
       // Clear items not associated with any transaction
       conditions.push(isNull(cartItems.transactionId));
-    }
-    
-    if (userId) {
-      // Only clear items for this user
-      conditions.push(eq(cartItems.userId, userId));
     }
     
     await db.delete(cartItems).where(and(...conditions));

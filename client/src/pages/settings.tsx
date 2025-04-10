@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "wouter";
-import { ArrowLeft, Save, Tag } from "lucide-react";
+import { ArrowLeft, Save, Tag, Image as ImageIcon } from "lucide-react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 
@@ -41,6 +41,7 @@ const settingsSchema = z.object({
   
   // Receipt settings
   showLogo: z.boolean().default(true),
+  logoUrl: z.string().url("Please enter a valid URL").optional().or(z.literal("")),
   showTaxDetails: z.boolean().default(true),
   receiptFooter: z.string().optional(),
   
@@ -57,6 +58,7 @@ export default function Settings() {
   const { toast } = useToast();
   const [isSaving, setIsSaving] = useState(false);
   const [isCategoryModalOpen, setIsCategoryModalOpen] = useState(false);
+  const [imageError, setImageError] = useState(false);
   
   // Fetch categories
   const { data: categories = [] } = useQuery<Category[]>({
@@ -72,6 +74,7 @@ export default function Settings() {
     storePhone: "(555) 123-4567",
     storeEmail: "contact@mystore.com",
     showLogo: true,
+    logoUrl: "",
     showTaxDetails: true,
     receiptFooter: "Thank you for your business!",
     enableInventoryTracking: true,
@@ -94,6 +97,8 @@ export default function Settings() {
     storePhone?: string;
     storeEmail?: string;
     receiptFooter?: string;
+    showLogo?: boolean;
+    logoUrl?: string;
   };
   
   // Fetch user settings from the server
@@ -126,6 +131,9 @@ export default function Settings() {
       if (userSettings.receiptFooter) {
         form.setValue('receiptFooter', userSettings.receiptFooter);
       }
+      // Set logo settings
+      form.setValue('showLogo', userSettings.showLogo ?? true);
+      form.setValue('logoUrl', userSettings.logoUrl || '');
     }
   }, [userSettings, form]);
   
@@ -181,12 +189,16 @@ export default function Settings() {
       const serverSettings: UserSettings = {
         currency: data.currency,
         taxRate: data.taxRate,
-        storeName: data.storeName,
-        storeAddress: data.storeAddress,
-        storePhone: data.storePhone,
-        storeEmail: data.storeEmail,
-        receiptFooter: data.receiptFooter
+        storeName: data.storeName || undefined,
+        storeAddress: data.storeAddress || undefined,
+        storePhone: data.storePhone || undefined,
+        storeEmail: data.storeEmail || undefined,
+        receiptFooter: data.receiptFooter || undefined,
+        showLogo: data.showLogo,
+        logoUrl: data.logoUrl || undefined
       };
+      
+      console.log('Saving settings:', serverSettings); // Debug log
       
       // Save all settings to the server
       await saveSettingsMutation.mutateAsync(serverSettings);
@@ -198,9 +210,11 @@ export default function Settings() {
         enableInventoryTracking: data.enableInventoryTracking,
         enableDiscounts: data.enableDiscounts,
         enableHoldOrders: data.enableHoldOrders,
-        defaultCategory: data.defaultCategory
+        defaultCategory: data.defaultCategory,
+        logoUrl: data.logoUrl // Also save logo URL in localStorage as backup
       };
       
+      console.log('Saving local settings:', localSettings); // Debug log
       localStorage.setItem("pos-settings", JSON.stringify(localSettings));
     } catch (error) {
       // Error is handled by the mutation
@@ -392,6 +406,56 @@ export default function Settings() {
                               onCheckedChange={field.onChange}
                             />
                           </FormControl>
+                        </FormItem>
+                      )}
+                    />
+                    
+                    <FormField
+                      control={form.control}
+                      name="logoUrl"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Logo Image URL</FormLabel>
+                          <FormControl>
+                            <Input 
+                              {...field} 
+                              type="url" 
+                              placeholder="https://example.com/logo.png"
+                              disabled={!form.watch("showLogo")}
+                              onChange={(e) => {
+                                field.onChange(e);
+                                setImageError(false);
+                              }}
+                            />
+                          </FormControl>
+                          <FormDescription>
+                            Enter the URL of your store logo image (supported formats: PNG, JPG, JPEG)
+                          </FormDescription>
+                          <FormMessage />
+                          {field.value && form.watch("showLogo") && (
+                            <div className="mt-2">
+                              <div className="border rounded-lg p-4 bg-slate-50">
+                                {imageError ? (
+                                  <div className="flex items-center justify-center h-32 text-slate-500">
+                                    <div className="text-center">
+                                      <ImageIcon className="h-8 w-8 mx-auto mb-2" />
+                                      <p className="text-sm">Failed to load image</p>
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="relative h-32 bg-white rounded border">
+                                    <img
+                                      src={field.value}
+                                      alt="Store Logo Preview"
+                                      className="h-full mx-auto object-contain p-2"
+                                      onError={() => setImageError(true)}
+                                    />
+                                  </div>
+                                )}
+                                <p className="text-sm text-slate-500 mt-2">Logo Preview</p>
+                              </div>
+                            </div>
+                          )}
                         </FormItem>
                       )}
                     />

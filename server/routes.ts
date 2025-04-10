@@ -255,7 +255,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   apiRouter.delete("/cart", async (req: Request, res: Response) => {
     const userId = req.isAuthenticated() ? req.user!.id : undefined;
-    await storage.clearCart(undefined, userId);
+    await storage.clearCart(undefined);
     res.status(204).end();
   });
 
@@ -317,7 +317,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       // Associate cart items with the transaction
       for (const item of cartItems) {
-        await storage.updateCartItem(item.id, item.quantity);
+        await storage.updateCartItem(item.id, item.quantity, transaction.id);
         
         // Update product inventory
         const product = await storage.getProductById(item.productId);

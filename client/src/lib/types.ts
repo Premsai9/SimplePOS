@@ -49,4 +49,6 @@ export interface Settings {
   storePhone?: string;
   storeEmail?: string;
   receiptFooter?: string;
+  showLogo?: boolean;
+  logoUrl?: string;
 }
