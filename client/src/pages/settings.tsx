@@ -68,8 +68,8 @@ export default function Settings() {
   // Initialize form with default values
   const defaultValues: SettingsFormValues = {
     storeName: "My POS Store",
-    taxRate: 8.5,
-    currency: "USD",
+    taxRate: 5,
+    currency: "INR",
     storeAddress: "123 Main St, City, State",
     storePhone: "(555) 123-4567",
     storeEmail: "contact@mystore.com",

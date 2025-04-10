@@ -2,7 +2,6 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X } from "lucide-react";
 import { PaymentForm, Settings } from "@/lib/types";
 import { useQuery } from "@tanstack/react-query";
 
@@ -50,12 +49,7 @@ export default function PaymentModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white rounded-lg shadow-lg w-full max-w-lg mx-4">
         <DialogHeader className="border-b border-slate-200 pb-4">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-lg font-semibold text-slate-800">Complete Payment</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-lg font-semibold text-slate-800">Complete Payment</DialogTitle>
         </DialogHeader>
         
         <div className="p-4">

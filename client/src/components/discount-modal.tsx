@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Percent, DollarSign } from "lucide-react";
+import { Percent, DollarSign } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
+import { Settings } from "@/lib/types";
 
 interface DiscountModalProps {
   isOpen: boolean;
@@ -19,6 +21,14 @@ export default function DiscountModal({
 }: DiscountModalProps) {
   const [discountType, setDiscountType] = useState<'percentage' | 'amount'>('percentage');
   const [discountValue, setDiscountValue] = useState<number>(0);
+
+  // Get user's currency settings
+  const { data: settings } = useQuery<Settings>({
+    queryKey: ['/api/settings'],
+  });
+
+  // Use currency from settings or default to USD
+  const currency = settings?.currency || 'USD';
 
   const handleDiscountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseFloat(e.target.value);
@@ -58,19 +68,14 @@ export default function DiscountModal({
     <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="bg-white rounded-lg shadow-lg w-full max-w-md mx-4">
         <DialogHeader className="border-b border-slate-200 pb-4">
-          <div className="flex justify-between items-center">
-            <DialogTitle className="text-lg font-semibold text-slate-800">Apply Discount</DialogTitle>
-            <Button variant="ghost" size="icon" onClick={onClose}>
-              <X className="h-4 w-4" />
-            </Button>
-          </div>
+          <DialogTitle className="text-lg font-semibold text-slate-800">Apply Discount</DialogTitle>
         </DialogHeader>
         
         <div className="p-4">
           <div className="mb-4">
             <div className="flex justify-between mb-1">
               <span className="text-sm font-medium text-slate-700">Subtotal</span>
-              <span className="text-lg font-bold text-slate-700">${subtotal.toFixed(2)}</span>
+              <span className="text-lg font-bold text-slate-700">{currency} {subtotal.toFixed(2)}</span>
             </div>
           </div>
           
@@ -92,13 +97,13 @@ export default function DiscountModal({
             </div>
           </div>
           
-          <div className="mb-4">
+          <div>
             <label className="text-sm font-medium text-slate-700 block mb-1">
               {discountType === 'percentage' ? 'Discount Percentage' : 'Discount Amount'}
             </label>
             <div className="relative">
               <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400">
-                {discountType === 'percentage' ? '%' : '$'}
+                {discountType === 'percentage' ? '%' : currency}
               </span>
               <Input 
                 type="number"
@@ -112,14 +117,14 @@ export default function DiscountModal({
             </div>
           </div>
           
-          <div className="mb-4 p-3 bg-slate-50 rounded">
+          <div className="mb-4 p-3 bg-slate-50 rounded mt-4">
             <div className="flex justify-between">
               <span className="text-sm font-medium text-slate-700">Discount Amount</span>
-              <span className="text-lg font-bold text-red-600">-${calculateDiscountAmount().toFixed(2)}</span>
+              <span className="text-lg font-bold text-red-600">-{currency} {calculateDiscountAmount().toFixed(2)}</span>
             </div>
             <div className="flex justify-between mt-2 pt-2 border-t border-slate-200">
               <span className="text-sm font-medium text-slate-700">New Total</span>
-              <span className="text-lg font-bold text-green-600">${newTotal.toFixed(2)}</span>
+              <span className="text-lg font-bold text-green-600">{currency} {newTotal.toFixed(2)}</span>
             </div>
           </div>
         </div>
